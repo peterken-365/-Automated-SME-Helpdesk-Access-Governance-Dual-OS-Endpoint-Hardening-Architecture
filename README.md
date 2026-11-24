@@ -59,16 +59,16 @@ Every claim in this repository is backed by a test, and every result is produced
 
 1. **Tier 1 — Script pre-validation:** the repository's own scripts executed in a sandbox shell (real exit codes, checksums, inode dedup); all shell scripts also pass a `bash -n` syntax gate. Logs: [prevalidation-logs/](05-validation-evidence/prevalidation-logs/).
 2. **Tier 2 — Simulator E2E:** all six tests driven end-to-end through the [interactive lab](lab/) UI on **2026-11-24** — desktop and mobile viewports, zero console errors, including the T-01 UAC dialog. Proves the architecture's decision paths behave exactly as designed.
-3. **Tier 3 — Physical lab capture:** the same six tests re-run on the real VirtualBox endpoints with screenshots, per the [lab build guide](06-lab-build/lab-build-guide.md). This is the remaining tier.
+3. **Tier 3 — Physical lab capture:** the same six tests re-run on the real VirtualBox endpoints with screenshots, per the [lab build guide](06-lab-build/lab-build-guide.md). **In progress:** SRV-LIN01 was built, hardened and snapshotted on 2026-11-24, and the Linux-side legs (T-02, T-03 SRV-LIN01, T-06) already executed on the real endpoint — transcripts in [prevalidation-logs/](05-validation-evidence/prevalidation-logs/). Remaining: WIN-FIN01 build + its test legs + PNG screenshot capture.
 
 | Test ID | Scenario tested | Expected architectural result | Simulator E2E (Tier 2) | Physical lab (Tier 3) |
 |---|---|---|---|---|
 | [T-01](05-validation-evidence/test_results.md#t-01--standard-user-privilege-boundary) | Standard user tries to install unapproved software or change firewall settings | Blocked by UAC / privilege boundary | ✅ Verified 2026-11-24 | ⏳ Pending |
-| [T-02](05-validation-evidence/test_results.md#t-02--linux-ssh-key-only-enforcement) | Password-based / direct root SSH login to Linux node | Connection rejected; key-only auth enforced | ✅ Verified 2026-11-24 | ⏳ Pending |
-| [T-03](05-validation-evidence/test_results.md#t-03--port-scan-against-hardened-endpoints) | Port scan against hardened Windows & Linux endpoints | Only explicitly permitted ports respond | ✅ Verified 2026-11-24 | ⏳ Pending |
+| [T-02](05-validation-evidence/test_results.md#t-02--linux-ssh-key-only-enforcement) | Password-based / direct root SSH login to Linux node | Connection rejected; key-only auth enforced | ✅ Verified 2026-11-24 | ✅ Executed on real VM 2026-11-24 (transcript) · PNGs pending |
+| [T-03](05-validation-evidence/test_results.md#t-03--port-scan-against-hardened-endpoints) | Port scan against hardened Windows & Linux endpoints | Only explicitly permitted ports respond | ✅ Verified 2026-11-24 | 🔶 SRV-LIN01 leg executed on real VM 2026-11-24 (transcript) · WIN-FIN01 leg + PNGs pending |
 | [T-04](05-validation-evidence/test_results.md#t-04--rbac-folder-access-control) | Finance user attempts to open IT Admin restricted folder | Access denied by group-level ACL | ✅ Verified 2026-11-24 | ⏳ Pending |
 | [T-05](05-validation-evidence/test_results.md#t-05--dns-failure-isolation-runbook-a) | Simulated DNS failure on workstation | Runbook A isolates failure to the DNS layer | ✅ Verified 2026-11-24 | ⏳ Pending |
-| [T-06](05-validation-evidence/test_results.md#t-06--backup-restore) | Accidental file deletion by staff member | File restored from scheduled backup | ✅ Verified 2026-11-24 — plus a real `backup-restore.sh` run (Tier 1): bit-identical restore | ⏳ Pending |
+| [T-06](05-validation-evidence/test_results.md#t-06--backup-restore) | Accidental file deletion by staff member | File restored from scheduled backup | ✅ Verified 2026-11-24 — plus a real `backup-restore.sh` run (Tier 1): bit-identical restore | ✅ Executed on real VM 2026-11-24 (transcript) · PNGs pending |
 
 ## 6. Repository Map
 
