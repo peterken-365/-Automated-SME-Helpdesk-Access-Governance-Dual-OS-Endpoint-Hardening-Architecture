@@ -185,6 +185,27 @@ section.on{display:block; animation:reveal .45s ease}
 .uacbox .ubtns button:hover{background:#3a4c72}
 .uacfoot{font-size:10.5px; color:var(--faint)}
 
+/* ---------- incident challenges ---------- */
+.chalticket{background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-left:3px solid var(--acc,var(--red)); border-radius:8px; padding:18px 20px; max-width:780px; animation:reveal .4s ease}
+.chalmeta{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap}
+.chalmeta .cid{font-weight:700; font-size:11px; letter-spacing:.16em; color:var(--acc,var(--red))}
+.sev{font-size:9.5px; font-weight:700; letter-spacing:.14em; color:var(--red); border:1px solid rgba(255,97,97,.45); padding:2px 8px; border-radius:3px}
+.sev.p2{color:var(--amber); border-color:rgba(255,180,84,.45)}
+.chalticket h3{font-family:var(--disp); font-size:23px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px}
+.report{border-left:2px solid var(--line2); padding:6px 12px; color:var(--dim); font-size:12.5px; font-style:italic; margin-bottom:14px}
+.chalbtns{display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px}
+.chalbtn{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; padding:8px 14px; border-radius:4px; cursor:pointer; background:color-mix(in srgb, var(--acc,var(--red)) 12%, transparent); color:var(--acc,var(--red)); border:1px solid color-mix(in srgb, var(--acc,var(--red)) 45%, transparent); transition:.15s}
+.chalbtn:hover:not(:disabled){background:color-mix(in srgb, var(--acc,var(--red)) 22%, transparent)}
+.chalbtn:disabled{opacity:.4; cursor:not-allowed}
+.chalbtn.ghost{color:var(--dim); border-color:var(--line2); background:none}
+.chalbtn.ghost:hover:not(:disabled){color:var(--amber); border-color:rgba(255,180,84,.4); background:none}
+.hintbox{margin:10px 0 0; padding:10px 14px; border:1px dashed rgba(255,180,84,.35); border-radius:6px; color:#d8b98c; font-size:12px}
+.verdict{margin-top:14px; padding:12px 16px; border-radius:6px; font-size:12.5px; letter-spacing:.03em; animation:reveal .4s ease}
+.verdict.pass{border:1px solid rgba(67,240,160,.4); background:rgba(67,240,160,.06); color:var(--ph)}
+.verdict.fail{border:1px solid rgba(255,97,97,.4); background:rgba(255,97,97,.05); color:var(--red)}
+.verdict.live{border:1px solid rgba(255,180,84,.4); background:rgba(255,180,84,.06); color:#d8b98c}
+.chlive{margin-bottom:12px; padding:8px 12px; border:1px solid rgba(255,97,97,.4); border-radius:5px; background:rgba(255,97,97,.06); color:var(--red); font-size:11px; letter-spacing:.08em}
+
 /* ---------- completion panel ---------- */
 .finish{margin-top:16px; padding:16px 18px; border:1px solid rgba(67,240,160,.35); border-radius:8px; background:rgba(67,240,160,.05);
   color:var(--ph); font-size:12.5px; letter-spacing:.03em; display:none; animation:reveal .4s ease}
@@ -253,7 +274,7 @@ footer a{color:var(--dim); text-decoration:none; border-bottom:1px dotted var(--
   <section id="v-labs" class="on">
     <div class="viewhead">
       <h2>Validation <em>Labs</em></h2>
-      <p>Walk through the six verification tests exactly as scripted in the repository — every output matches the documented architecture. Then open the free terminal and explore on your own.</p>
+      <p>Walk through the six verification tests exactly as scripted in the repository — every output matches the documented architecture. Then take an Incident Challenge: the lab breaks for real, and you fix it.</p>
     </div>
     <div class="grid" id="cards"></div>
   </section>
@@ -295,6 +316,15 @@ footer a{color:var(--dim); text-decoration:none; border-bottom:1px dotted var(--
       </div>
       <div class="cheat" id="cheat"></div>
     </div>
+  </section>
+
+  <!-- ===== INCIDENT CHALLENGES ===== -->
+  <section id="v-chal">
+    <div class="viewhead">
+      <h2>Incident <em>Challenges</em></h2>
+      <p>The simulator breaks the lab for real — same live state, same console. Diagnose it like on-call: run the ladder, prove the failing layer, then type the actual fix command. Scored on how you get there.</p>
+    </div>
+    <div id="chalStage"></div>
   </section>
 </main>
 
@@ -343,10 +373,13 @@ const S = {
   fileDeleted:false,
   restored:false,
   backupDaily:null,
+  bannedIP:null,
   completed:new Set(),
+  chPassed:new Set(),
 };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 try{ JSON.parse(localStorage.getItem("sme-lab-completed")||"[]").forEach(id=>S.completed.add(id)); }catch(e){}
+try{ JSON.parse(localStorage.getItem("sme-lab-challenges")||"[]").forEach(id=>S.chPassed.add(id)); }catch(e){}
 
 /* ================= tiny DOM + print helpers ================= */
 const $ = id => document.getElementById(id);
@@ -406,7 +439,7 @@ function setNode(name, why){
 
 /* ================= free terminal ================= */
 let hist=[], histIx=-1;
-function termPrint(lines, instant=false){ printLines($("termOut"), lines, instant); scrollOut($("termOut")); }
+function termPrint(lines, instant=false){ const p = printLines($("termOut"), lines, instant); scrollOut($("termOut")); return p; }
 function renderCheat(){
   const os = NODES[S.node].os;
   const cmds = {
@@ -414,7 +447,7 @@ function renderCheat(){
     win:  [["help","command set"],["whoami /groups","account tiers"],["net user guest","baseline check"],["ipconfig /all","network config"],["ping SRV-LIN01","reachability"],["nslookup google.com","DNS test"],["icacls C:\\Corp\\IT-Admin-Logs","RBAC audit"],["net user hacker /add","try to install?!"],["clear","clear screen"]],
     linux:[["help","command set"],["ufw status verbose","firewall"],["sshd -T | grep -E 'passwordauthentication|permitrootlogin'","SSH baseline"],["fail2ban-client status sshd","brute-force lockout"],["sudo tail -6 /var/log/auth.log","audit log"],["backup-restore.sh list","3-2-1 backups"],["md5sum /srv/company-data/reports/quarterly-summary.odt","integrity"],["ping google.com","DNS test"],["exit","leave SSH session"]],
   }[os];
-  const c = $("cheat"); c.innerHTML = `<h4>${S.node} · Commands</h4>`;
+  const c = $("cheat"); c.innerHTML = (CH && !CH.done ? `<div class="chlive">⚠ ${CH.ch.id} LIVE — incident in progress</div>` : "") + `<h4>${S.node} · Commands</h4>`;
   cmds.forEach(([cmd,d])=>{ const e=el("code","",esc(cmd)); e.title=d; e.onclick=()=>{ $("termIn").value=cmd; $("termIn").focus(); }; c.appendChild(e); });
   c.appendChild(el("div","hint","click a command to fill the prompt · ↑/↓ history · Tab autocomplete"));
 }
@@ -486,13 +519,31 @@ const CMDS = {
       return [L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok")]; },
     sudo(a){ const rest = a.join(" ");
       if(rest.startsWith("tail")) return [L("Nov 24 18:02:11 SRV-LIN01 sshd[1247]: Connection closed by 192.168.56.1 port 55234 [preauth]"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: User root from 192.168.56.1 not allowed because not listed in AllowUsers","warn"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: Connection closed by 192.168.56.1 port 55236 [preauth]"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Failed publickey for itsupport from 192.168.56.1 port 55240 ssh2: ED25519 SHA256:xK9…mQ2"), L("Nov 24 18:02:41 SRV-LIN01 sudo:  itsupport : TTY=pts/0 ; PWD=/home/itsupport ; COMMAND=/usr/bin/fail2ban-client status sshd","ok"), L("Nov 24 18:04:02 SRV-LIN01 systemd[1]: unattended-upgrades.service: Security update applied — no interaction required","dim")];
+      if(rest.startsWith("fail2ban-client")) return CMDS.linux["fail2ban-client"](rest.split(/\s+/).slice(1));
       if(rest.startsWith("cat") && rest.includes("sshd_config")) return [L("# key-only remote access (linux-baseline row 1-2)"), L("PasswordAuthentication no","ok"), L("KbdInteractiveAuthentication no","ok"), L("PubkeyAuthentication yes","ok"), L("PermitRootLogin no","ok")];
-      return [L("sudo: command available in this simulation: sudo tail · sudo cat /etc/ssh/sshd_config","dim")]; },
+      return [L("sudo: command available in this simulation: sudo tail · sudo fail2ban-client · sudo cat /etc/ssh/sshd_config","dim")]; },
     ufw(a){ if(a.join(" ").includes("verbose")) return [L("Status: active","ok"), L("Logging: on (low)"), L("Default: deny (incoming), allow (outgoing), disabled (routed)","ok"), L(""), L("To                         Action      From"), L("--                         ------      ----"), L("22/tcp                     ALLOW IN    192.168.56.0/24","ok"), L("22/tcp (v6)                ALLOW IN    fd00::/8")];
       return [L("Status: active","ok")]; },
     "sshd"(a){ if(a.join(" ").includes("-T")) return [L("permitrootlogin no","ok"), L("passwordauthentication no","ok"), L("kbdinteractiveauthentication no","ok"), L("pubkeyauthentication yes","ok"), L("maxauthtries 6"), L(""), L("(linux-baseline rows 1-2 verified — see T-02)","dim")];
       return [L("sshd: usage — try: sshd -T | grep -E 'passwordauthentication|permitrootlogin'","dim")]; },
-    "fail2ban-client"(a){ if(a.join(" ").includes("sshd")) return [L("Status for the jail: sshd","ok"), L("|- Filter"), L("|  |- Currently failed:  3  (all from 192.168.56.1 — your earlier password attempts)","dim"), L("|  |- Total failed:      3"), L("|  `- File list:        /var/log/auth.log"), L("`- Actions"), L("   |- Currently banned: 0","ok"), L("   `- Total banned:     0   (ban rule: 5 failures in 10 min → 30 min ban)")];
+    "fail2ban-client"(a){
+      const j=a.join(" ");
+      if(j.includes("unbanip")){
+        if(!S.bannedIP) return [L("No addresses are currently banned in jail sshd.","ok")];
+        const ipm=j.match(/unbanip\s+(\d+\.\d+\.\d+\.\d+)/i);
+        const unbanned=S.bannedIP; S.bannedIP=null;
+        return [L("Unbanned "+(ipm?ipm[1]:unbanned)+" from jail sshd.","ok"), L("Port 22 answers again from 192.168.56.1 — re-verify from LAP-IT01: ssh itsupport@192.168.56.20","dim")];
+      }
+      if(j.includes("sshd")){
+        const ban = !!S.bannedIP;
+        const actions = ban
+          ? [L("   |- Currently banned: 1","err"), L("   |- Banned IP list:   "+S.bannedIP,"err"), L("   `- Total banned:     1   (rule: 5 failures in 10 min → 30 min ban)")]
+          : [L("   |- Currently banned: 0","ok"), L("   `- Total banned:     0   (rule: 5 failures in 10 min → 30 min ban)")];
+        const failed = ban
+          ? L("|  |- Currently failed:  5  (a retry loop on LAP-IT01 hammered password auth — password attempts can never succeed, but fail2ban still counts them)","dim")
+          : L("|  |- Currently failed:  3  (all from 192.168.56.1 — your earlier password attempts)","dim");
+        return [L("Status for the jail: sshd","ok"), L("|- Filter"), failed, L("|  |- Total failed:      "+(ban?5:3)), L("|  `- File list:        /var/log/auth.log"), L("`- Actions"), ...actions];
+      }
       return [L("Jails: sshd")]; },
     "backup-restore.sh"(a){ return backupCmd(a); },
     cat(a){ return [L("cat: use sudo cat /etc/ssh/sshd_config or md5sum in this simulation","dim")]; },
@@ -521,12 +572,12 @@ function tnc(a){
   if(!ipm) return [L("usage: Test-NetConnection <ip> [-Port n]","dim")];
   const ip=ipm[1]; const port=pm?+pm[1]:null;
   const table={"192.168.56.10":{22:0,135:0,3389:1,445:0,5985:0},"192.168.56.20":{22:1,80:0,443:0,3389:0}};
-  const open = port!=null ? (table[ip]?table[ip][port]:0)===1 : true;
+  const open = port!=null ? (table[ip]?table[ip][port]:0)===1 && !(ip==="192.168.56.20" && port===22 && S.bannedIP) : true;
   const out=[L(""), L("ComputerName           : "+ip), L("RemoteAddress          : "+ip)];
   if(port!=null) out.push(L("RemotePort             : "+port));
   out.push(L("TcpTestSucceeded       : "+(open?"True":"False"), open?"ok":"err"));
   out.push(L(""));
-  if(port!=null && !open) out.push(L("Filtered/dropped — default-deny inbound. Only scoped ports answer: WIN-FIN01 3389 · SRV-LIN01 22 (mgmt subnet only). See T-03.","dim"));
+  if(port!=null && !open) out.push(L(ip==="192.168.56.20" && port===22 && S.bannedIP ? "Timed out — the port was scoped yesterday and sshd_config is unchanged. Something between the hosts is dropping packets. See Runbook E." : "Filtered/dropped — default-deny inbound. Only scoped ports answer: WIN-FIN01 3389 · SRV-LIN01 22 (mgmt subnet only). See T-03.","dim"));
   if(port!=null && open) out.push(L("Permitted — this port is explicitly scoped to the management subnet by the host firewall.","ok"));
   return out;
 }
@@ -534,6 +585,7 @@ function sshCmd(a){
   const j=a.join(" ");
   const m=j.match(/(\w+)@(\d+\.\d+\.\d+\.\d+)/); const user=m?m[1]:""; const ip=m?m[2]:"";
   if(!ip) return [L("usage: ssh <user>@192.168.56.20","dim")];
+  if(S.bannedIP && S.node==="LAP-IT01") return [L("ssh: connect to host "+ip+" port 22: Connection timed out","err"), L(""), L("Port 22 is dropping packets — that is not an authentication failure. Auth would refuse fast; a timeout means the packets never arrive. Check the path, then suspect fail2ban. See Runbook E.","dim")];
   const passwordForced = /PreferredAuthentications=password|PubkeyAuthentication=no/i.test(j);
   if(user==="root"||passwordForced){
     return [L("The authenticity warning is skipped — host key already trusted."), L(user+"@"+ip+": Permission denied (publickey).","err"), L(""), L("Password and direct-root access are architecturally impossible: sshd accepts keys only, PermitRootLogin no. See T-02.","dim")];
@@ -571,7 +623,8 @@ function runCommand(raw){
   const out = fn ? fn(parts.slice(1)) : [
     NODES[S.node].os==="linux" ? L(key+": command not found","err") : L("'"+key+"' is not recognized as an internal or external command, operable program or batch file.","err"),
     L("type 'help' for the "+S.node+" command set","dim")];
-  termPrint(out);
+  const typing = termPrint(out);
+  if(CH && !CH.done){ CH.cmds++; typing.then(chalCheck); }
 }
 
 /* ================= UAC modal ================= */
@@ -680,7 +733,11 @@ function renderCards(){
     c.onclick=()=>openLab(lab);
     g.appendChild(c);
   });
-  const t=el("div","card terminal-card"); t.style.setProperty("--acc","var(--ph)"); t.style.animationDelay=(LABS.length*0.06)+"s";
+  const chCard=el("div","card terminal-card"); chCard.style.setProperty("--acc","var(--red)"); chCard.style.animationDelay=(LABS.length*0.06)+"s";
+  chCard.innerHTML=`<div class="lead"><h3>Incident Challenges</h3><p>The simulator breaks the lab for real — same live state, same console. Diagnose it, then type the actual fix command. Scored, runbook-linked, three live incidents.</p></div><div class="go">TAKE A CHALLENGE</div>`;
+  chCard.onclick=()=>showChals();
+  g.appendChild(chCard);
+  const t=el("div","card terminal-card"); t.style.setProperty("--acc","var(--ph)"); t.style.animationDelay=((LABS.length+1)*0.06)+"s";
   t.innerHTML=`<div class="lead"><h3>Free-Play Terminal</h3><p>Switch between the control node, the Windows endpoint and the Ubuntu server. ~20 whitelisted commands, state-aware output, no install required.</p></div><div class="go">OPEN CONSOLE</div>`;
   t.onclick=()=>{ showView("v-term"); $("termIn").focus(); };
   g.appendChild(t);
@@ -738,6 +795,118 @@ async function runStep(i,btn){
   }
 }
 function markStepDone(i){ document.querySelectorAll("#runSteps .step")[i]?.classList.add("done"); }
+
+/* ================= incident challenges ================= */
+const CHALLENGES = [
+ { id:"CH-1", acc:"var(--violet)", sev:"P2", title:"DNS Outage on WIN-FIN01",
+   report:"“The internet is dead on my machine. I have a payroll upload due in 20 minutes.” — Finance user, WIN-FIN01",
+   break:()=>{ S.dnsBroken=true; },
+   fixed:()=>!S.dnsBroken,
+   fixCmd:'Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ResetServerAddresses',
+   runbook:"04-troubleshooting-runbooks/runbook-a-no-internet.md",
+   hints:["Run the Runbook A ladder on WIN-FIN01: ping 192.168.56.1, then ping 8.8.8.8, then nslookup google.com. Which layer stops answering?",
+          "IP passes, names fail → DNS layer. Check the adapter config (ipconfig /all): 'Ethernet 2' points at 192.168.56.53 — a server that does not exist. Reset it."] },
+ { id:"CH-2", acc:"var(--blue)", sev:"P1", title:"Deleted File on SRV-LIN01",
+   report:"“I deleted quarterly-summary.odt from the reports folder. Audit needs it back tomorrow — exactly as it was.” — Operations user",
+   break:()=>{ S.fileDeleted=true; S.restored=false; },
+   fixed:()=>!S.fileDeleted && S.restored,
+   fixCmd:"backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt",
+   runbook:"06-lab-build/scripts/README.md",
+   hints:["Prove the loss first on SRV-LIN01: ls /srv/company-data/reports/ then md5sum the file. 'No such file or directory' is your ticket evidence.",
+          "A backup that was never restored is not a backup. List snapshots (backup-restore.sh list), restore from the latest daily, then verify the md5 matches the baseline fingerprint recorded in T-06."] },
+ { id:"CH-3", acc:"var(--red)", sev:"P1", title:"Lockout: SSH Refused from LAP-IT01",
+   report:"“Your key-based SSH to SRV-LIN01 worked this morning. Now not even Test-NetConnection opens port 22 — and nobody touched sshd_config.” — your own morning check",
+   break:()=>{ S.bannedIP="192.168.56.1"; },
+   fixed:()=>!S.bannedIP,
+   fixCmd:"sudo fail2ban-client set sshd unbanip 192.168.56.1",
+   runbook:"04-troubleshooting-runbooks/runbook-e-ssh-refused.md",
+   hints:["From LAP-IT01: Test-NetConnection 192.168.56.20 -Port 22 → False, and ssh times out instead of saying 'Permission denied'. Config unchanged + port filtered = something between the hosts is watching auth.",
+          "fail2ban bans repeat auth offenders — 5 password failures is enough, even though passwords can never succeed. Take the SRV-LIN01 node tab (hypervisor console — local login bypasses SSH) and run sudo fail2ban-client status sshd. Then unban the management workstation's IP."] },
+];
+let CH=null; // {ch, cmds, hints, done, revealed}
+function showChals(){ renderChalGrid(); showView("v-chal"); }
+function renderChalGrid(){
+  const g=$("chalStage"); g.innerHTML="";
+  if(CH && !CH.done){
+    const live=el("div","chlive","⚠ "+CH.ch.id+" LIVE — incident in progress (click to resume hints) · fix it from the Free-Play Terminal");
+    live.style.cursor="pointer"; live.onclick=()=>openChal(CH.ch, true);
+    g.appendChild(live);
+  }
+  const wrap=el("div","grid");
+  CHALLENGES.forEach((ch,i)=>{
+    const c=el("div","card"+(S.chPassed.has(ch.id)?" completed":""));
+    c.style.setProperty("--acc",ch.acc); c.style.animationDelay=(i*0.06)+"s";
+    c.innerHTML=`<span class="done-badge">✓ PASSED</span><span class="tid">${ch.id} · ${ch.sev}</span><h3>${ch.title}</h3>
+      <p>${esc(ch.report)}</p><div class="go">OPEN INCIDENT</div>`;
+    c.onclick=()=>openChal(ch);
+    wrap.appendChild(c);
+  });
+  g.appendChild(wrap);
+}
+function openChal(ch, resume){
+  const live = resume && CH && CH.ch===ch && !CH.done;
+  if(!live) CH=null;
+  document.documentElement.style.setProperty("--acc", ch.acc);
+  const g=$("chalStage"); g.innerHTML="";
+  const passed = S.chPassed.has(ch.id);
+  const t=el("div","chalticket");
+  t.innerHTML=`<div class="chalmeta"><span class="cid">${ch.id}</span><span class="sev ${ch.sev==="P2"?"p2":""}">${ch.sev} · INCIDENT EXERCISE</span>${passed?'<span style="color:var(--ph); font-size:10.5px; letter-spacing:.12em">✓ PASSED</span>':""}</div>
+  <h3>${ch.title}</h3>
+  <div class="report">${esc(ch.report)}</div>
+  <div class="chalbtns"><button class="chalbtn" id="chBreak"${live?" disabled":""}>${live?"✗ LAB STATE BROKEN":"⚠ START INCIDENT — BREAK THE LAB"}</button>
+  <button class="chalbtn ghost" id="chBack">← all incidents</button></div>
+  <div id="chLive"></div><div id="chHints"></div><div id="chVerdict"></div>`;
+  g.appendChild(t);
+  $("chBreak").onclick=()=>startChal(ch);
+  $("chBack").onclick=()=>renderChalGrid();
+  if(live) mountLive(ch);
+}
+function mountLive(ch){
+  $("chLive").innerHTML=`<div class="verdict live" style="margin-top:10px">INCIDENT ACTIVE — live lab state mutated (the free terminal sees it too). Diagnose from the right node, then type the real fix command.<div class="chalbtns" style="margin-top:10px"><button class="chalbtn" id="chTerm">→ OPEN TERMINAL</button><button class="chalbtn ghost" id="chHintBtn">💡 hint ${CH.hints}/2</button><button class="chalbtn ghost" id="chGive">give up — reveal fix</button></div></div>`;
+  CH.revealed.forEach((h,i)=>{ $("chHints").appendChild(el("div","hintbox","HINT "+(i+1)+" — "+esc(h))); });
+  $("chTerm").onclick=()=>{ showView("v-term"); $("termIn").focus(); };
+  $("chHintBtn").onclick=chalHint;
+  $("chGive").onclick=chalGiveUp;
+}
+function startChal(ch){
+  if(CH && !CH.done) return;
+  CH={ch, cmds:0, hints:0, done:false, revealed:[]};
+  ch.break();
+  $("chBreak").disabled=true; $("chBreak").textContent="✗ LAB STATE BROKEN";
+  mountLive(ch);
+}
+function chalHint(){
+  if(!CH||CH.done) return;
+  if(CH.hints>=CH.ch.hints.length) return;
+  const h=CH.ch.hints[CH.hints]; CH.hints++; CH.revealed.push(h);
+  $("chHints").appendChild(el("div","hintbox","HINT "+CH.hints+" — "+esc(h)));
+  const b=$("chHintBtn"); if(b) b.textContent="💡 hint "+CH.hints+"/2";
+}
+function chalGiveUp(){
+  if(!CH||CH.done) return;
+  const ch=CH.ch; CH.done=true; CH=null;
+  const v=$("chVerdict");
+  if(v) v.innerHTML=`<div class="verdict fail"><b>HANDED OVER — ${ch.id}.</b> Real on-call rule: escalate with evidence, don't guess. The correct fix:<br><code style="color:var(--cyan)">${esc(ch.fixCmd)}</code><br>Full procedure: <a href="${REPO}${ch.runbook}" target="_blank" rel="noopener" style="color:var(--cyan)">${ch.runbook.split("/").pop()}</a></div>`;
+  const b=$("chHintBtn"); if(b) b.disabled=true; const gv=$("chGive"); if(gv) gv.disabled=true;
+  renderCheat();
+}
+function chalCheck(){
+  if(!CH||CH.done) return;
+  const ch=CH.ch;
+  if(!ch.fixed()) return;
+  CH.done=true;
+  S.chPassed.add(ch.id);
+  try{ localStorage.setItem("sme-lab-challenges", JSON.stringify([...S.chPassed])); }catch(e){}
+  const cmds=CH.cmds, hints=CH.hints;
+  CH=null;
+  termPrint([L(""), L("✓ INCIDENT RESOLVED — "+ch.id+" · "+ch.title,"ok"),
+    L("Diagnosis: "+cmds+" commands typed · "+hints+" hints used.","dim"),
+    L("You just walked the real decision path of "+ch.runbook.split("/").pop()+".","dim")]);
+  const v=$("chVerdict");
+  if(v) v.innerHTML=`<div class="verdict pass"><b>✓ PASS — ${ch.id} resolved.</b> ${cmds} commands · ${hints} hints. State is restored for the next incident. Read the full procedure: <a href="${REPO}${ch.runbook}" target="_blank" rel="noopener" style="color:var(--cyan)">${ch.runbook.split("/").pop()}</a></div>`;
+  const b=$("chHintBtn"); if(b) b.disabled=true; const gv=$("chGive"); if(gv) gv.disabled=true;
+  renderCheat();
+}
 
 /* ================= boot ================= */
 $("boot").addEventListener("click",()=>$("boot").classList.add("done"));

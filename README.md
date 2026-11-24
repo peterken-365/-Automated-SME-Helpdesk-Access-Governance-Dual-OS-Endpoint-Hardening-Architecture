@@ -10,6 +10,8 @@
 
 No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is **live here**: [peterken-365.github.io/…/lab](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence remains the physical lab build in [`05-validation-evidence/`](05-validation-evidence/). All six guided tests have been executed end-to-end in this simulator — full transcripts in [`05-validation-evidence/prevalidation-logs/`](05-validation-evidence/prevalidation-logs/).
 
+**New — Incident Challenges:** the simulator now *breaks the lab for real* (DNS outage, deleted file, SSH lockout), and you diagnose it in the free-play terminal and type the actual fix command. Scored PASS/hand-over, hints staged, every challenge linked to the runbook it exercises.
+
 ## 1. The Business Problem
 
 Savannah Logistics Ltd. is a fast-growing 40-employee logistics company in Nairobi running a mixed Windows and Linux environment. The company hired IT support to solve four recurring pain points:
