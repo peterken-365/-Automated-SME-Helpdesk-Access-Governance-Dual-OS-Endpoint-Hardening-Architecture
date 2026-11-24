@@ -192,6 +192,19 @@ section.on{display:block; animation:reveal .45s ease}
 .finish a{color:var(--cyan); text-decoration:none; border-bottom:1px dotted var(--cyan)}
 .finish .big{font-family:var(--disp); font-size:22px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px}
 
+@media(max-width:860px){
+  header{flex-wrap:wrap}
+  .brand{border-right:none; flex:0 0 auto}
+  .nodetabs{order:3; width:100%; margin-left:0; overflow-x:auto; border-top:1px solid var(--line); scrollbar-width:none}
+  .nodetabs::-webkit-scrollbar{display:none}
+  .ntab{flex:1 0 auto; justify-content:center; padding:7px 12px}
+  .hright{margin-left:auto; padding:0 12px; gap:10px}
+}
+@media(max-width:520px){
+  .brand small{display:none}
+  .brand h1{font-size:16px}
+  .clock{font-size:11px}
+}
 footer{border-top:1px solid var(--line); padding:18px; text-align:center; color:var(--faint); font-size:11px; letter-spacing:.08em}
 footer a{color:var(--dim); text-decoration:none; border-bottom:1px dotted var(--faint)}
 @media(prefers-reduced-motion:reduce){
@@ -333,6 +346,7 @@ const S = {
   completed:new Set(),
 };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+try{ JSON.parse(localStorage.getItem("sme-lab-completed")||"[]").forEach(id=>S.completed.add(id)); }catch(e){}
 
 /* ================= tiny DOM + print helpers ================= */
 const $ = id => document.getElementById(id);
@@ -586,7 +600,7 @@ const LABS = [
           : L("Operation cancelled by user.","warn"),
           L("T-01 part 1 captured: the UAC boundary holds. (windows-baseline rows 1-2)","dim")];
       } },
-    { node:"WIN-FIN01", cmd:"netsh advfirewall set allprofiles state off", note:"Attempt to disable the host firewall — a security-control change.",
+    { node:"WIN-FIN01", cmd:"netsh advfirewall set allprofiles state off", label:"Run netsh firewall-off attempt", note:"Attempt to disable the host firewall — a security-control change.",
       out:()=>[L("C:\\Users\\awanjiru> netsh advfirewall set allprofiles state off","cmd"), L("The requested operation requires elevation.","err"), L(""), L("Firewall remains ON across all 3 profiles. T-01 complete.","dim")] },
    ]},
  { id:"T-02", acc:"var(--ph)", title:"Linux SSH Key-Only Enforcement", node:"LAP-IT01",
@@ -594,13 +608,13 @@ const LABS = [
    doc:"03-hardening-baselines/linux-baseline.md",
    finish:"Both connections rejected at the protocol level. sshd config confirms key-only + no root. Auth log records every attempt for the audit trail.",
    steps:[
-    { node:"LAP-IT01", cmd:"ssh -o PreferredAuthentications=password itsupport@192.168.56.20", note:"Force password authentication — the baseline forbids it.",
+    { node:"LAP-IT01", cmd:"ssh -o PreferredAuthentications=password itsupport@192.168.56.20", label:"Run password-auth SSH attempt", note:"Force password authentication — the baseline forbids it.",
       out:()=>[L("PS C:\\Users\\itsupport> ssh -o PreferredAuthentications=password itsupport@192.168.56.20","cmd"), L("itsupport@192.168.56.20: Permission denied (publickey).","err"), L(""), L("Server offered exactly one method: publickey.","dim")] },
-    { node:"LAP-IT01", cmd:"ssh root@192.168.56.20", note:"Attempt direct root login — PermitRootLogin no.",
+    { node:"LAP-IT01", cmd:"ssh root@192.168.56.20", label:"Run root SSH attempt", note:"Attempt direct root login — PermitRootLogin no.",
       out:()=>[L("PS C:\\Users\\itsupport> ssh root@192.168.56.20","cmd"), L("root@192.168.56.20: Permission denied (publickey).","err"), L(""), L("No password prompt ever appeared — passwords are not part of the protocol surface.","dim")] },
-    { node:"SRV-LIN01", cmd:"sshd -T | grep -E 'passwordauthentication|permitrootlogin'", note:"Read the effective sshd configuration on the server.",
+    { node:"SRV-LIN01", cmd:"sshd -T | grep -E 'passwordauthentication|permitrootlogin'", label:"Run sshd -T config check", note:"Read the effective sshd configuration on the server.",
       out:()=>[L("itsupport@SRV-LIN01:~$ sshd -T | grep -E 'passwordauthentication|permitrootlogin'","cmd"), L("permitrootlogin no","ok"), L("passwordauthentication no","ok"), L(""), L("linux-baseline rows 1-2 verified.","dim")] },
-    { node:"SRV-LIN01", cmd:"sudo tail -4 /var/log/auth.log", note:"Every rejected attempt is retained for audit (Pillar 5).",
+    { node:"SRV-LIN01", cmd:"sudo tail -4 /var/log/auth.log", label:"Run auth.log tail", note:"Every rejected attempt is retained for audit (Pillar 5).",
       out:()=>[L("itsupport@SRV-LIN01:~$ sudo tail -4 /var/log/auth.log","cmd"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: User root from 192.168.56.1 not allowed because not listed in AllowUsers","warn"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: Connection closed by 192.168.56.1 port 55236 [preauth]"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Failed publickey for itsupport from 192.168.56.1 port 55240 ssh2: ED25519 SHA256:xK9…mQ2"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Connection closed by 192.168.56.1 port 55240 [preauth]"), L(""), L("Audit trail intact — who, when, what method, from where.","dim")] },
    ]},
  { id:"T-03", acc:"var(--cyan)", title:"Port Scan Against Hardened Endpoints", node:"LAP-IT01",
@@ -608,9 +622,9 @@ const LABS = [
    doc:"05-validation-evidence/test_results.md",
    finish:"Only WIN-FIN01:3389 (RDP) and SRV-LIN01:22 (SSH) answered — both scoped to 192.168.56.0/24. Ten other probes were dropped.",
    steps:[
-    { node:"LAP-IT01", cmd:"22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }", note:"Sweep WIN-FIN01: scoped port (3389) vs unscoped ports.",
+    { node:"LAP-IT01", cmd:"22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }", label:"Run WIN-FIN01 port sweep", note:"Sweep WIN-FIN01: scoped port (3389) vs unscoped ports.",
       out:()=>[L("PS C:\\Users\\itsupport> 22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }","cmd"), L("WIN-FIN01 port 22   : False","err"), L("WIN-FIN01 port 135  : False","err"), L("WIN-FIN01 port 3389 : True","ok"), L("WIN-FIN01 port 445  : False","err"), L("WIN-FIN01 port 5985 : False","err"), L(""), L("Only the IT-support RDP rule answers — scoped to 192.168.56.0/24.","dim")] },
-    { node:"LAP-IT01", cmd:"22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }", note:"Sweep SRV-LIN01: scoped port (22) vs unscoped ports.",
+    { node:"LAP-IT01", cmd:"22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }", label:"Run SRV-LIN01 port sweep", note:"Sweep SRV-LIN01: scoped port (22) vs unscoped ports.",
       out:()=>[L("PS C:\\Users\\itsupport> 22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }","cmd"), L("SRV-LIN01 port 22   : True","ok"), L("SRV-LIN01 port 80   : False","err"), L("SRV-LIN01 port 443  : False","err"), L("SRV-LIN01 port 3389 : False","err"), L(""), L("One service, one subnet, nothing else — UFW default-deny holds.","dim")] },
    ]},
  { id:"T-04", acc:"var(--red)", title:"RBAC Folder Access Control", node:"WIN-FIN01",
@@ -618,9 +632,9 @@ const LABS = [
    doc:"02-identity-and-access/rbac-matrix.md",
    finish:"Access denied by group-level ACL — GRP-Finance holds no grant on the path. Deny-by-default, explicit grants only.",
    steps:[
-    { node:"WIN-FIN01", cmd:"dir \\\\WIN-FIN01\\IT-Admin-Logs", note:"As awanjiru (Finance), attempt to open the IT-admin-only share.",
+    { node:"WIN-FIN01", cmd:"dir \\\\WIN-FIN01\\IT-Admin-Logs", label:"Run dir on IT-Admin-Logs", note:"As awanjiru (Finance), attempt to open the IT-admin-only share.",
       out:()=>[L("C:\\Users\\awanjiru> dir \\\\WIN-FIN01\\IT-Admin-Logs","cmd"), L("Access is denied.","err"), L(""), L("awanjiru ∈ GRP-Finance — that group holds no grant on IT-Admin-Logs.","dim")] },
-    { node:"WIN-FIN01", cmd:"icacls \"C:\\Corp\\IT-Admin-Logs\"", note:"Audit the authoritative ACL (administrative view).",
+    { node:"WIN-FIN01", cmd:"icacls \"C:\\Corp\\IT-Admin-Logs\"", label:"Run icacls audit", note:"Audit the authoritative ACL (administrative view).",
       out:()=>[L("C:\\Users\\awanjiru> icacls \"C:\\Corp\\IT-Admin-Logs\"","cmd"), L("C:\\Corp\\IT-Admin-Logs"), L("                      GRP-ITSUPPORT:(OI)(CI)F","ok"), L("                      SYSTEM:(OI)(CI)F"), L("                      Administrators:(OI)(CI)F"), L(""), L("Successfully processed 1 files"), L(""), L("Matches the RBAC matrix exactly. T-04 complete.","dim")] },
    ]},
  { id:"T-05", acc:"var(--violet)", title:"DNS Failure Isolation (Runbook A)", node:"WIN-FIN01",
@@ -628,15 +642,15 @@ const LABS = [
    doc:"04-troubleshooting-runbooks/runbook-a-no-internet.md",
    finish:"Ladder verdict: IP reachable (gateway + external), name resolution dead → DNS layer. This is exactly the Runbook A decision path — then we reverted the change.",
    steps:[
-    { node:"WIN-FIN01", cmd:'Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53', note:"Point the host-only adapter at a nonexistent DNS server.",
+    { node:"WIN-FIN01", cmd:'Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53', label:"Run DNS break", note:"Point the host-only adapter at a nonexistent DNS server.",
       out:()=>{ S.dnsBroken=true; return [L('C:\\Users\\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53','cmd'), L("DNS servers set to 192.168.56.53 — a server that does not exist.","warn"), L(""), L("[lab state changed: free-terminal nslookup now fails too]","dim")]; } },
-    { node:"WIN-FIN01", cmd:"ping 192.168.56.1", note:"Runbook A step 3 — gateway reachability.",
+    { node:"WIN-FIN01", cmd:"ping 192.168.56.1", label:"Run gateway ping", note:"Runbook A step 3 — gateway reachability.",
       out:()=>[L("C:\\Users\\awanjiru> ping 192.168.56.1","cmd"), L("Reply from 192.168.56.1: bytes=32 time<1ms TTL=128","ok"), L("Reply from 192.168.56.1: bytes=32 time<1ms TTL=128","ok"), L(""), L("PASS — physical/link/IP layers healthy.","dim")] },
-    { node:"WIN-FIN01", cmd:"ping 8.8.8.8", note:"Runbook A step 4 — reach beyond the gateway (via NAT).",
+    { node:"WIN-FIN01", cmd:"ping 8.8.8.8", label:"Run external ping", note:"Runbook A step 4 — reach beyond the gateway (via NAT).",
       out:()=>[L("C:\\Users\\awanjiru> ping 8.8.8.8","cmd"), L("Reply from 8.8.8.8: bytes=32 time=48ms TTL=113","ok"), L("Reply from 8.8.8.8: bytes=32 time=47ms TTL=113","ok"), L(""), L("PASS — routing is fine. The problem is not the network.","dim")] },
-    { node:"WIN-FIN01", cmd:"nslookup google.com", note:"Runbook A step 5 — name resolution.",
+    { node:"WIN-FIN01", cmd:"nslookup google.com", label:"Run nslookup", note:"Runbook A step 5 — name resolution.",
       out:()=>[L("C:\\Users\\awanjiru> nslookup google.com","cmd"), L("DNS request timed out.","err"), L("    timeout was 2 seconds.","err"), L("*** Request to 192.168.56.53 timed-out","err"), L(""), L("VERDICT: IP passes, name fails → DNS-layer failure (Runbook A isolation complete).","violet")] },
-    { node:"WIN-FIN01", cmd:"Set-DnsClientServerAddress -InterfaceAlias \"Ethernet 2\" -ResetServerAddresses", note:"Resolve the incident: revert DNS and re-verify.",
+    { node:"WIN-FIN01", cmd:"Set-DnsClientServerAddress -InterfaceAlias \"Ethernet 2\" -ResetServerAddresses", label:"Run DNS reset + re-verify", note:"Resolve the incident: revert DNS and re-verify.",
       out:()=>{ S.dnsBroken=false; return [L('C:\\Users\\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ResetServerAddresses',"cmd"), L("DNS servers reset.","ok"), L("C:\\Users\\awanjiru> nslookup google.com","cmd"), L("Name:    google.com"), L("Address:  142.250.183.14","ok"), L(""), L("Service restored — and the root-cause prevention note goes in the ticket.","dim")]; } },
    ]},
  { id:"T-06", acc:"var(--blue)", title:"Backup Restore (3-2-1)", node:"SRV-LIN01",
@@ -644,13 +658,13 @@ const LABS = [
    doc:"05-validation-evidence/test_results.md",
    finish:"Deleted file returned with a matching checksum — Pillar 5 (Backup, Change Management & Auditability) demonstrated end to end.",
    steps:[
-    { node:"SRV-LIN01", cmd:"md5sum /srv/company-data/reports/quarterly-summary.odt", note:"Record the file's integrity fingerprint BEFORE anything happens.",
+    { node:"SRV-LIN01", cmd:"md5sum /srv/company-data/reports/quarterly-summary.odt", label:"Run md5sum baseline", note:"Record the file's integrity fingerprint BEFORE anything happens.",
       out:()=>[L("itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt","cmd"), L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok")] },
-    { node:"SRV-LIN01", cmd:"backup-restore.sh daily", note:"Confirm a fresh scheduled snapshot exists (cron runs this at 18:00 daily).",
+    { node:"SRV-LIN01", cmd:"backup-restore.sh daily", label:"Run daily snapshot", note:"Confirm a fresh scheduled snapshot exists (cron runs this at 18:00 daily).",
       out:()=>[L("itsupport@SRV-LIN01:~$ backup-restore.sh daily","cmd"), L("Daily snapshot -> /srv/backups/daily/2026-11-24","ok"), L("(hardlink-deduplicated against the previous snapshot)","dim")] },
-    { node:"SRV-LIN01", cmd:"rm /srv/company-data/reports/quarterly-summary.odt", note:"Simulate the staff accident.",
+    { node:"SRV-LIN01", cmd:"rm /srv/company-data/reports/quarterly-summary.odt", label:"Run rm (delete file)", note:"Simulate the staff accident.",
       out:()=>{ S.fileDeleted=true; return [L("itsupport@SRV-LIN01:~$ rm /srv/company-data/reports/quarterly-summary.odt","cmd"), L("[file deleted]","err"), L("itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt","cmd"), L("md5sum: /srv/company-data/reports/quarterly-summary.odt: No such file or directory","err"), L("[lab state changed: the file is gone in the free terminal too]","dim")]; } },
-    { node:"SRV-LIN01", cmd:"backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt", note:"Restore from the scheduled snapshot.",
+    { node:"SRV-LIN01", cmd:"backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt", label:"Run restore + verify", note:"Restore from the scheduled snapshot.",
       out:()=>{ S.restored=true; S.fileDeleted=false; return [L("itsupport@SRV-LIN01:~$ backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt","cmd"), L("Restored: /srv/backups/daily/2026-11-24/reports/quarterly-summary.odt -> /srv/company-data/reports/quarterly-summary.odt","ok"), L("Checksum of restored file:"), L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok"), L(""), L("Checksum matches the pre-deletion fingerprint — bit-identical. T-06 complete.","dim")]; } },
    ]},
 ];
@@ -710,6 +724,7 @@ async function runStep(i,btn){
   else{
     await typeLine($("runOut"), NODES[st.node].prompt+" "+st.cmd, "cmd", reduced?0:120);
     out = st.out(S);
+    if(out.length && out[0][1]==="cmd") out = out.slice(1); // out() re-echoes the typed command — drop the duplicate
   }
   await printLines($("runOut"), out);
   await printLines($("runOut"), [L("")], true);
@@ -719,7 +734,7 @@ async function runStep(i,btn){
     renderSteps();
     $("finishText").innerHTML = curLab.finish + ` &nbsp;<a href="${REPO}${curLab.doc}" target="_blank" rel="noopener">read the doc ↗</a> · <a href="#" onclick="openLab(curLab);return false">replay</a>`;
     $("finish").classList.add("on");
-    S.completed.add(curLab.id); renderCards();
+    S.completed.add(curLab.id); try{ localStorage.setItem("sme-lab-completed", JSON.stringify([...S.completed])); }catch(e){} renderCards();
   }
 }
 function markStepDone(i){ document.querySelectorAll("#runSteps .step")[i]?.classList.add("done"); }
