@@ -1,0 +1,34 @@
+T-01 — Standard-User Privilege Boundary
+Captured: 2026-11-24 · Method: guided lab run in the deployed browser simulator
+Environment: production GitHub Pages build (lab/index.html), Chromium 158, desktop viewport
+URL: https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/
+Scope note: verifies the control LOGIC and decision paths; real-endpoint screenshots remain for the physical lab session.
+
+=== step 1: Run whoami /groups ===
+C:\Users\awanjiru> whoami /groups
+WIN-FIN01\awanjiru
+Group Name                             Type
+======================================= ================
+WIN-FIN01\GRP-Finance                  Group
+Everyone                               Well-known group
+Users                                  Well-known group
+
+No Administrators membership — day-to-day account only (JML policy §2).
+
+=== step 2: Run installer.exe (needs elevation) ===
+C:\Users\awanjiru> installer.exe
+
+Requesting elevation…
+[UAC dialog presented in-session; elevation demand declined — no awanjiru-adm credentials entered]
+Windows Security: elevation DENIED — admin credentials required (awanjiru-adm).
+T-01 part 1 captured: the UAC boundary holds. (windows-baseline rows 1-2)
+
+=== step 3: Run netsh firewall-off attempt ===
+C:\Users\awanjiru> netsh advfirewall set allprofiles state off
+The requested operation requires elevation.
+
+Firewall remains ON across all 3 profiles. T-01 complete.
+
+--- run outcome ---
+All steps executed · lab finished: TRUE · completion badge registered (T-01)
+Console errors during run: 0

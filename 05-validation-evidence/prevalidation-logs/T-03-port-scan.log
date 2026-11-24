@@ -1,0 +1,28 @@
+T-03 — Port Scan Against Hardened Endpoints
+Captured: 2026-11-24 · Method: guided lab run in the deployed browser simulator
+Environment: production GitHub Pages build (lab/index.html), Chromium 158, desktop viewport
+URL: https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/
+Scope note: verifies the control LOGIC and decision paths; real-endpoint screenshots remain for the physical lab session.
+
+=== step 1: Run WIN-FIN01 port sweep ===
+PS C:\Users\itsupport> 22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }
+WIN-FIN01 port 22   : False
+WIN-FIN01 port 135  : False
+WIN-FIN01 port 3389 : True
+WIN-FIN01 port 445  : False
+WIN-FIN01 port 5985 : False
+
+Only the IT-support RDP rule answers — scoped to 192.168.56.0/24.
+
+=== step 2: Run SRV-LIN01 port sweep ===
+PS C:\Users\itsupport> 22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }
+SRV-LIN01 port 22   : True
+SRV-LIN01 port 80   : False
+SRV-LIN01 port 443  : False
+SRV-LIN01 port 3389 : False
+
+One service, one subnet, nothing else — UFW default-deny holds.
+
+--- run outcome ---
+All steps executed · lab finished: TRUE · completion badge registered (T-03)
+Console errors during run: 0

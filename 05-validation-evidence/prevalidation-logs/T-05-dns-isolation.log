@@ -1,0 +1,47 @@
+T-05 — DNS Failure Isolation (Runbook A)
+Captured: 2026-11-24 · Method: guided lab run in the deployed browser simulator
+Environment: production GitHub Pages build (lab/index.html), Chromium 158, desktop viewport
+URL: https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/
+Scope note: verifies the control LOGIC and decision paths; real-endpoint screenshots remain for the physical lab session.
+State mutation: step 1 sets S.dnsBroken=true — the free-play terminal's nslookup also fails until step 5 resets it (cross-view consistency verified).
+
+=== step 1: Run DNS break ===
+C:\Users\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53
+DNS servers set to 192.168.56.53 — a server that does not exist.
+
+[lab state changed: free-terminal nslookup now fails too]
+
+=== step 2: Run gateway ping ===
+C:\Users\awanjiru> ping 192.168.56.1
+Reply from 192.168.56.1: bytes=32 time<1ms TTL=128
+Reply from 192.168.56.1: bytes=32 time<1ms TTL=128
+
+PASS — physical/link/IP layers healthy.
+
+=== step 3: Run external ping ===
+C:\Users\awanjiru> ping 8.8.8.8
+Reply from 8.8.8.8: bytes=32 time=48ms TTL=113
+Reply from 8.8.8.8: bytes=32 time=47ms TTL=113
+
+PASS — routing is fine. The problem is not the network.
+
+=== step 4: Run nslookup ===
+C:\Users\awanjiru> nslookup google.com
+DNS request timed out.
+    timeout was 2 seconds.
+*** Request to 192.168.56.53 timed-out
+
+VERDICT: IP passes, name fails → DNS-layer failure (Runbook A isolation complete).
+
+=== step 5: Run DNS reset + re-verify ===
+C:\Users\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ResetServerAddresses
+DNS servers reset.
+C:\Users\awanjiru> nslookup google.com
+Name:    google.com
+Address:  142.250.183.14
+
+Service restored — and the root-cause prevention note goes in the ticket.
+
+--- run outcome ---
+All steps executed · lab finished: TRUE · completion badge registered (T-05)
+Console errors during run: 0

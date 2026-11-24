@@ -1,0 +1,24 @@
+--- T-06 step 1: md5sum baseline ---
+246f3d847f425073f32498500da02567  company-data/reports/quarterly-summary.odt
+
+--- T-06 step 2: backup-restore.sh daily ---
+Daily snapshot -> /home/z/preval/backups/daily/2026-11-24
+
+--- T-06 step 2b: simulate next-day cron run (prev snapshot renamed), prove hardlink dedup ---
+Daily snapshot -> /home/z/preval/backups/daily/2026-11-24
+inode comparison (dedup = same inode):
+  day1 snapshot: 287153
+  day2 snapshot: 287153
+
+--- T-06 step 3: rm (the staff accident) ---
+file deleted: CONFIRMED
+md5sum: company-data/reports/quarterly-summary.odt: No such file or directory
+
+--- T-06 step 4: backup-restore.sh restore ---
+Restored: /home/z/preval/backups/daily/2026-11-24/reports/quarterly-summary.odt -> /home/z/preval/company-data/reports/quarterly-summary.odt
+Checksum of restored file:
+246f3d847f425073f32498500da02567  /home/z/preval/company-data/reports/quarterly-summary.odt
+
+--- T-06 verification: checksum matches baseline ---
+246f3d847f425073f32498500da02567  company-data/reports/quarterly-summary.odt
+expected: 246f3d847f425073f32498500da02567

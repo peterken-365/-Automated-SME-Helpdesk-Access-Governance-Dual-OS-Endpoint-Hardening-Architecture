@@ -1,0 +1,35 @@
+T-02 — Linux SSH Key-Only Enforcement
+Captured: 2026-11-24 · Method: guided lab run in the deployed browser simulator
+Environment: production GitHub Pages build (lab/index.html), Chromium 158, desktop viewport
+URL: https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/
+Scope note: verifies the control LOGIC and decision paths; real-endpoint screenshots remain for the physical lab session.
+
+=== step 1: Run password-auth SSH attempt ===
+PS C:\Users\itsupport> ssh -o PreferredAuthentications=password itsupport@192.168.56.20
+itsupport@192.168.56.20: Permission denied (publickey).
+
+Server offered exactly one method: publickey.
+
+=== step 2: Run root SSH attempt ===
+PS C:\Users\itsupport> ssh root@192.168.56.20
+root@192.168.56.20: Permission denied (publickey).
+
+No password prompt ever appeared — passwords are not part of the protocol surface.
+
+=== step 3: Run sshd -T config check ===
+itsupport@SRV-LIN01:~$ sshd -T | grep -E 'passwordauthentication|permitrootlogin'
+permitrootlogin no
+passwordauthentication no
+linux-baseline rows 1-2 verified.
+
+=== step 4: Run auth.log tail ===
+itsupport@SRV-LIN01:~$ sudo tail -4 /var/log/auth.log
+Nov 24 18:02:14 SRV-LIN01 sshd[1249]: User root from 192.168.56.1 not allowed because not listed in AllowUsers
+Nov 24 18:02:14 SRV-LIN01 sshd[1249]: Connection closed by 192.168.56.1 port 55236 [preauth]
+Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Failed publickey for itsupport from 192.168.56.1 port 55240 ssh2: ED25519 SHA256:xK9…mQ2
+Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Connection closed by 192.168.56.1 port 55240 [preauth]
+Audit trail intact — who, when, what method, from where.
+
+--- run outcome ---
+All steps executed · lab finished: TRUE · completion badge registered (T-02)
+Console errors during run: 0

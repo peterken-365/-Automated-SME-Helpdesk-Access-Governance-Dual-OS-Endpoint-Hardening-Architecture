@@ -1,0 +1,35 @@
+T-06 — Backup Restore (3-2-1) — SIMULATOR run
+Captured: 2026-11-24 · Method: guided lab run in the deployed browser simulator
+Environment: production GitHub Pages build (lab/index.html), Chromium 158, desktop viewport
+URL: https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/
+Scope note: verifies the runbook LOGIC and decision paths in the simulator.
+A companion log, T-06-backup-restore.log, records the REAL backup-restore.sh script
+executed in a sandbox shell — checksum-matched restore and hardlink dedup proven there.
+
+=== step 1: Run md5sum baseline ===
+itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt
+e2f7a1c94b6d3f80a5c1e9b2d7f4a683  /srv/company-data/reports/quarterly-summary.odt
+
+=== step 2: Run daily snapshot ===
+itsupport@SRV-LIN01:~$ sudo bash /opt/scripts/backup-restore.sh daily
+Daily snapshot -> /srv/backups/daily/2026-11-24
+(hardlink-deduplicated against the previous snapshot)
+
+=== step 3: Run rm (delete file) ===
+itsupport@SRV-LIN01:~$ rm /srv/company-data/reports/quarterly-summary.odt
+[file deleted]
+itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt
+md5sum: /srv/company-data/reports/quarterly-summary.odt: No such file or directory
+[lab state changed: the file is gone in the free terminal too]
+
+=== step 4: Run restore + verify ===
+itsupport@SRV-LIN01:~$ sudo bash /opt/scripts/backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt
+Restored: /srv/backups/daily/2026-11-24/reports/quarterly-summary.odt -> /srv/company-data/reports/quarterly-summary.odt
+Checksum of restored file:
+e2f7a1c94b6d3f80a5c1e9b2d7f4a683  /srv/company-data/reports/quarterly-summary.odt
+
+Checksum matches the pre-deletion fingerprint — bit-identical. T-06 complete.
+
+--- run outcome ---
+All steps executed · lab finished: TRUE · completion badge registered (T-06)
+Console errors during run: 0
