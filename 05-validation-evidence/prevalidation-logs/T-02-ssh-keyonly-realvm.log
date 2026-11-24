@@ -46,3 +46,16 @@ $ [on SRV-LIN01] sudo tail -14 /var/log/auth.log
 2026-11-24T20:49:52.099696+00:00 SRV-LIN01 sshd[2305]: Connection closed by authenticating user itsupport 192.168.56.1 port 49490 [preauth]
 2026-11-24T20:49:52.424253+00:00 SRV-LIN01 sshd[2307]: Connection closed by authenticating user root 192.168.56.1 port 58974 [preauth]
 2026-11-24T20:53:03.657311+00:00 SRV-LIN01 sudo: itsupport : PWD=/home/itsupport ; USER=root ; COMMAND=/usr/bin/grep -E 'Failed|Invalid user|Connection closed by authenticating|Permission denied' /var/log/auth.log
+
+# fail2ban recheck ~15 min after the T-02 attempts (2026-11-24):
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed:	0
+|  |- Total failed:	0
+|  `- Journal matches:	_SYSTEMD_UNIT=sshd.service + _COMM=sshd
+`- Actions
+   |- Currently banned:	0
+   |- Total banned:	0
+   `- Banned IP list:	
+# Finding: counters stay 0 - preauth rejects with passwordauthentication no never register
+# as failures; the brute-force vector is structurally dead and the jail stays as depth.
