@@ -4,9 +4,11 @@
 > **Role:** Junior Systems & IT Support Architect · **Version:** v1.0 · **Date:** 2026-11-24
 > **Simulated client:** Savannah Logistics Ltd., Nairobi
 
+**▶ [OPEN THE LIVE INTERACTIVE LAB](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/)** — runs in your browser, nothing to install.
+
 ## ▶ Try the Interactive Lab
 
-No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is published at [`lab/`](lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence remains the physical lab build in [`05-validation-evidence/`](05-validation-evidence/).
+No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is **live here**: [peterken-365.github.io/…/lab](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence remains the physical lab build in [`05-validation-evidence/`](05-validation-evidence/).
 
 ## 1. The Business Problem
 
