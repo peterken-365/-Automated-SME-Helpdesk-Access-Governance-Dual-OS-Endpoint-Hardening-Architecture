@@ -4,6 +4,10 @@
 > **Role:** Junior Systems & IT Support Architect · **Version:** v1.0 · **Date:** 2026-11-24
 > **Simulated client:** Savannah Logistics Ltd., Nairobi
 
+## ▶ Try the Interactive Lab
+
+No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is published at [`lab/`](lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence remains the physical lab build in [`05-validation-evidence/`](05-validation-evidence/).
+
 ## 1. The Business Problem
 
 Savannah Logistics Ltd. is a fast-growing 40-employee logistics company in Nairobi running a mixed Windows and Linux environment. The company hired IT support to solve four recurring pain points:
@@ -68,8 +72,9 @@ Every claim in this repository is backed by a test that was actually executed in
 ├── 03-hardening-baselines/            Windows + Linux golden-standard checklists
 ├── 04-troubleshooting-runbooks/       Runbooks A–E (Tier-1/Tier-2 SOPs)
 ├── 05-validation-evidence/            test_results.md + screenshot evidence
-└── 06-lab-build/                      click-by-click build guide + hardening scripts
-    └── scripts/                       linux-hardening.sh · windows-hardening.ps1 · backup-restore.sh
+├── 06-lab-build/                      click-by-click build guide + hardening scripts
+│   └── scripts/                       linux-hardening.sh · windows-hardening.ps1 · backup-restore.sh
+└── lab/                               ▶ interactive browser simulator (zero-install demo)
 ```
 
 ## 7. Rebuilding This Lab

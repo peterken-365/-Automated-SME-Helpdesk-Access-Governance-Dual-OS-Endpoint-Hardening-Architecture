@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Lab — Savannah Logistics IT Support NOC</title>
+<meta name="description" content="Browser-based simulation of the Automated SME Helpdesk, Access Governance & Dual-OS Endpoint Hardening Architecture lab.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0f18'/%3E%3Cpath d='M8 10h10M8 16h14M8 22h8' stroke='%2343f0a0' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#05080f; --bg1:#090e17; --panel:#0d1420; --panel2:#121a28; --line:#1c2637; --line2:#28344a;
+  --ph:#43f0a0; --ph-dim:#1f7a52; --amber:#ffb454; --red:#ff6161; --cyan:#59d1ff; --blue:#6ea8ff; --violet:#b18cff;
+  --ink:#cdd9e5; --dim:#64748c; --faint:#3d4a5f;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --disp:'Big Shoulders Display','IBM Plex Mono',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(103,232,178,.045), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(89,209,255,.04), transparent 60%),
+    var(--bg0);
+  color:var(--ink); font-family:var(--mono); font-size:14px; line-height:1.55; min-height:100vh;
+}
+/* CRT atmosphere: scanlines + vignette + grain */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
+  background:repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.10) 2px 4px);
+  opacity:.5;
+}
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:6;
+  background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0,0,0,.42) 100%);
+  mix-blend-mode:multiply;
+}
+.grain{position:fixed; inset:0; z-index:7; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");}
+::selection{background:rgba(67,240,160,.25)}
+
+/* ---------- boot overlay ---------- */
+#boot{position:fixed; inset:0; z-index:60; background:var(--bg0); display:flex; align-items:center; justify-content:center;
+  transition:opacity .5s ease; cursor:pointer}
+#boot.done{opacity:0; pointer-events:none}
+#boot .lines{width:min(560px,88vw)}
+#boot .bl{opacity:0; transform:translateY(4px); animation:bline .3s ease forwards; color:var(--dim); white-space:pre}
+#boot .bl b{color:var(--ph); font-weight:600}
+#boot .bl.brand{font-family:var(--disp); font-size:30px; letter-spacing:.14em; color:var(--ink); margin-bottom:14px}
+@keyframes bline{to{opacity:1; transform:none}}
+
+/* ---------- status bar ---------- */
+header{position:sticky; top:0; z-index:40; display:flex; align-items:stretch; gap:0;
+  background:rgba(7,11,18,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.brand{display:flex; align-items:center; gap:12px; padding:12px 18px; border-right:1px solid var(--line)}
+.brand .mark{width:30px;height:30px;border:1.5px solid var(--ph-dim);border-radius:6px;display:grid;place-items:center;color:var(--ph);font-size:14px;
+  text-shadow:0 0 8px rgba(67,240,160,.5); box-shadow:inset 0 0 12px rgba(67,240,160,.08)}
+.brand h1{font-family:var(--disp); font-weight:700; font-size:19px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink); line-height:1.05}
+.brand h1 span{color:var(--ph)}
+.brand small{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--dim); font-weight:400}
+.nodetabs{display:flex; align-items:stretch; margin-left:8px}
+.ntab{display:flex; flex-direction:column; justify-content:center; padding:8px 16px; cursor:pointer; border-right:1px solid var(--line);
+  color:var(--dim); font-size:11.5px; letter-spacing:.06em; position:relative; transition:color .15s, background .15s; user-select:none}
+.ntab b{font-size:12.5px; font-weight:600; letter-spacing:.04em}
+.ntab .ip{font-size:9.5px; color:var(--faint)}
+.ntab:hover{color:var(--ink); background:rgba(255,255,255,.02)}
+.ntab.active{color:var(--ph)}
+.ntab.active b{text-shadow:0 0 10px rgba(67,240,160,.45)}
+.ntab.active::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--ph); box-shadow:0 0 10px rgba(67,240,160,.6)}
+.hright{margin-left:auto; display:flex; align-items:center; gap:18px; padding:0 18px; border-left:1px solid var(--line)}
+.clock{color:var(--amber); font-size:12px; letter-spacing:.08em; text-shadow:0 0 10px rgba(255,180,84,.3)}
+.clock small{display:block; color:var(--dim); font-size:9px; letter-spacing:.18em}
+.ghlink{color:var(--cyan); font-size:11.5px; text-decoration:none; border:1px solid rgba(89,209,255,.35); padding:5px 10px; border-radius:4px; letter-spacing:.05em; transition:.15s}
+.ghlink:hover{background:rgba(89,209,255,.08); box-shadow:0 0 14px rgba(89,209,255,.15)}
+
+/* ---------- sim banner ---------- */
+.banner{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 18px; background:rgba(255,180,84,.055);
+  border-bottom:1px solid rgba(255,180,84,.22); font-size:11.5px; color:#d8b98c}
+.banner .tag{font-weight:700; letter-spacing:.14em; color:var(--amber); border:1px solid rgba(255,180,84,.4); padding:2px 8px; border-radius:3px; font-size:10px}
+.banner a{color:var(--amber); text-decoration:none; border-bottom:1px dotted rgba(255,180,84,.5)}
+.banner a:hover{border-bottom-style:solid}
+
+/* ---------- layout ---------- */
+main{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+section{display:none}
+section.on{display:block; animation:reveal .45s ease}
+@keyframes reveal{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+.viewhead{display:flex; align-items:baseline; gap:14px; margin:6px 0 20px; flex-wrap:wrap}
+.viewhead h2{font-family:var(--disp); font-size:34px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--ink)}
+.viewhead h2 em{font-style:normal; color:var(--ph)}
+.viewhead p{color:var(--dim); font-size:12.5px; max-width:640px}
+
+/* ---------- lab cards ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px}
+.card{position:relative; background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:8px;
+  padding:18px 18px 16px; cursor:pointer; overflow:hidden; transition:transform .18s ease, border-color .18s, box-shadow .18s; animation:reveal .5s ease backwards}
+.card:hover{transform:translateY(-3px); border-color:var(--acc); box-shadow:0 8px 28px rgba(0,0,0,.45), 0 0 0 1px var(--acc), 0 0 22px color-mix(in srgb, var(--acc) 18%, transparent)}
+.card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--acc); box-shadow:0 0 12px color-mix(in srgb, var(--acc) 55%, transparent)}
+.card .tid{display:inline-block; font-weight:700; font-size:11px; letter-spacing:.16em; color:var(--acc); border:1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+  padding:2px 9px; border-radius:3px; margin-bottom:10px}
+.card h3{font-family:var(--disp); font-size:21px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); margin-bottom:6px}
+.card p{color:var(--dim); font-size:12px; min-height:36px}
+.card .go{margin-top:12px; font-size:11.5px; letter-spacing:.1em; color:var(--acc); display:flex; align-items:center; gap:7px}
+.card .go::after{content:"→"; transition:transform .18s}
+.card:hover .go::after{transform:translateX(4px)}
+.card .done-badge{position:absolute; top:14px; right:14px; color:var(--ph); font-size:10.5px; letter-spacing:.12em; border:1px solid rgba(67,240,160,.4); padding:2px 8px; border-radius:3px; display:none}
+.card.completed .done-badge{display:block}
+.card.terminal-card{grid-column:1/-1; display:flex; align-items:center; gap:18px; padding:20px 22px; background:linear-gradient(90deg, rgba(67,240,160,.06), var(--panel) 45%)}
+.card.terminal-card h3{font-size:24px; margin-bottom:2px}
+.card.terminal-card .lead{flex:1}
+
+/* ---------- lab runner ---------- */
+.crumb{display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap}
+.backbtn{color:var(--dim); background:none; border:1px solid var(--line2); border-radius:4px; padding:6px 12px; cursor:pointer; font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; transition:.15s}
+.backbtn:hover{color:var(--ph); border-color:var(--ph-dim)}
+.labtitle{font-family:var(--disp); font-size:27px; font-weight:800; letter-spacing:.09em; text-transform:uppercase}
+.labtitle .tid{color:var(--acc)}
+.objective{color:var(--dim); font-size:12.5px; max-width:760px; margin-bottom:18px}
+.objective a{color:var(--cyan); text-decoration:none; border-bottom:1px dotted var(--cyan)}
+.runwrap{display:grid; grid-template-columns:320px 1fr; gap:16px; align-items:start}
+@media(max-width:860px){.runwrap{grid-template-columns:1fr}}
+.steps{display:flex; flex-direction:column; gap:8px}
+.step{background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px 14px; opacity:.45; transition:.2s}
+.step.active{opacity:1; border-color:color-mix(in srgb, var(--acc) 55%, var(--line))}
+.step.done{opacity:.75; border-color:var(--ph-dim)}
+.step .sh{display:flex; gap:9px; align-items:center}
+.step .num{width:20px; height:20px; border-radius:50%; border:1px solid var(--line2); display:grid; place-items:center; font-size:10.5px; color:var(--dim); flex:none}
+.step.done .num{border-color:var(--ph-dim); color:var(--ph); content:"✓"}
+.step h4{font-size:12.5px; font-weight:600; color:var(--ink); letter-spacing:.02em}
+.step .note{font-size:11.5px; color:var(--dim); margin-top:6px}
+.step .nodechip{margin-left:auto; font-size:9.5px; letter-spacing:.1em; color:var(--cyan); border:1px solid rgba(89,209,255,.35); border-radius:3px; padding:1px 6px; flex:none}
+.step button{margin-top:10px; width:100%; background:color-mix(in srgb, var(--acc) 12%, transparent); color:var(--acc); border:1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+  border-radius:4px; padding:8px 10px; font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; cursor:pointer; transition:.15s}
+.step button:hover:not(:disabled){background:color-mix(in srgb, var(--acc) 22%, transparent)}
+.step button:disabled{opacity:.4; cursor:not-allowed}
+.step.done button{display:none}
+.conwrap{background:var(--bg1); border:1px solid var(--line); border-radius:8px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.conhead{display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid var(--line); background:var(--panel); font-size:11px; letter-spacing:.1em; color:var(--dim)}
+.conhead .dot{width:8px;height:8px;border-radius:50%;background:var(--ph);box-shadow:0 0 8px rgba(67,240,160,.7)}
+.conout{padding:16px 16px 8px; height:430px; overflow-y:auto; font-size:12.8px}
+.conout::-webkit-scrollbar{width:9px}
+.conout::-webkit-scrollbar-thumb{background:var(--line2); border-radius:5px}
+.conout::-webkit-scrollbar-track{background:transparent}
+.ln{white-space:pre-wrap; word-break:break-word; margin-bottom:1px; color:var(--ink)}
+.ln.cmd{color:var(--ph); text-shadow:0 0 6px rgba(67,240,160,.28)}
+.ln.cmd::before{content:""; }
+.ln.dim{color:var(--dim)} .ln.ok{color:var(--ph)} .ln.warn{color:var(--amber)} .ln.err{color:var(--red); text-shadow:0 0 6px rgba(255,97,97,.25)} .ln.cyan{color:var(--cyan)} .ln.violet{color:var(--violet)} .ln.blue{color:var(--blue)}
+.caret{display:inline-block; width:8px; height:15px; background:var(--ph); vertical-align:-2px; animation:blink 1s steps(1) infinite; box-shadow:0 0 8px rgba(67,240,160,.6)}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- free terminal ---------- */
+.termwrap{display:grid; grid-template-columns:1fr 250px; gap:16px; align-items:start}
+@media(max-width:900px){.termwrap{grid-template-columns:1fr}}
+.cheat{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px}
+.cheat h4{font-family:var(--disp); font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--cyan); margin-bottom:8px}
+.cheat code{display:block; font-size:11px; color:var(--ink); padding:3px 0; border-bottom:1px dotted var(--line); cursor:pointer; transition:.12s}
+.cheat code:hover{color:var(--ph)}
+.cheat code::before{content:"› "; color:var(--faint)}
+.cheat .hint{font-size:10.5px; color:var(--dim); margin-top:10px}
+.tinput{display:flex; align-items:center; gap:8px; padding:10px 16px 14px; border-top:1px solid var(--line); background:var(--panel)}
+.tinput .pr{color:var(--ph); text-shadow:0 0 6px rgba(67,240,160,.3); font-size:12.8px; white-space:nowrap}
+.tinput input{flex:1; background:none; border:none; outline:none; color:var(--ink); font-family:var(--mono); font-size:12.8px; caret-color:var(--ph)}
+
+/* ---------- UAC modal ---------- */
+#uac{position:fixed; inset:0; z-index:80; display:none; align-items:center; justify-content:center; background:rgba(2,6,14,.78); backdrop-filter:blur(3px) saturate(.6)}
+#uac.on{display:flex; animation:uacin .18s ease}
+@keyframes uacin{from{opacity:0} to{opacity:1}}
+.uacbox{width:min(440px,92vw); background:#1d2735; border:1px solid #3a4a63; border-radius:2px; box-shadow:0 30px 80px rgba(0,0,0,.7); overflow:hidden;
+  font-family:'IBM Plex Mono',monospace; transition:transform .1s}
+.uacbox.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.uacbox .uhead{display:flex; gap:10px; align-items:center; padding:12px 16px; background:#141c28; border-bottom:1px solid #2a3850; color:#dbe6f2; font-size:13.5px; font-weight:600}
+.uacbox .uhead .shield{color:var(--cyan); font-size:16px}
+.uacbox .ubody{padding:16px; color:#b7c5d6; font-size:12.5px}
+.uacbox .prog{display:flex; gap:14px; align-items:center; margin-bottom:14px}
+.uacbox .prog .ico{width:44px; height:44px; background:#253349; border-radius:6px; display:grid; place-items:center; font-size:20px; color:var(--amber)}
+.uacbox .prog b{color:#e8eff7; font-weight:600; display:block; font-size:13px}
+.uacbox .cred{margin:12px 0; padding:10px 12px; background:#101927; border:1px solid #2a3850; border-radius:4px; font-size:11.5px; color:var(--amber)}
+.uacbox .ubtns{display:flex; justify-content:flex-end; gap:10px; padding:0 16px 16px}
+.uacbox .ubtns button{font-family:var(--mono); font-size:12px; padding:7px 20px; border-radius:3px; border:1px solid #4a5c7a; background:#243249; color:#dbe6f2; cursor:pointer; transition:.12s}
+.uacbox .ubtns button.primary{border-color:#5a729c; background:#31456b}
+.uacbox .ubtns button:hover{background:#3a4c72}
+.uacfoot{font-size:10.5px; color:var(--faint)}
+
+/* ---------- completion panel ---------- */
+.finish{margin-top:16px; padding:16px 18px; border:1px solid rgba(67,240,160,.35); border-radius:8px; background:rgba(67,240,160,.05);
+  color:var(--ph); font-size:12.5px; letter-spacing:.03em; display:none; animation:reveal .4s ease}
+.finish.on{display:block}
+.finish a{color:var(--cyan); text-decoration:none; border-bottom:1px dotted var(--cyan)}
+.finish .big{font-family:var(--disp); font-size:22px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px}
+
+footer{border-top:1px solid var(--line); padding:18px; text-align:center; color:var(--faint); font-size:11px; letter-spacing:.08em}
+footer a{color:var(--dim); text-decoration:none; border-bottom:1px dotted var(--faint)}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+  #boot{display:none}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div id="boot" title="click to skip">
+  <div class="lines">
+    <div class="bl brand">SAVANNAH LOGISTICS · IT SUPPORT NOC</div>
+    <div class="bl" style="animation-delay:.15s">mounting lab image ....................... <b>OK</b></div>
+    <div class="bl" style="animation-delay:.4s">attaching host-only net 192.168.56.0/24 .. <b>OK</b></div>
+    <div class="bl" style="animation-delay:.65s">spawning WIN-FIN01 · SRV-LIN01 ........... <b>OK</b></div>
+    <div class="bl" style="animation-delay:.9s">operator session .................... <b>GUEST · READ-ONLY</b></div>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="mark">▮▮</div>
+    <div>
+      <h1>Savannah <span>Logistics</span></h1>
+      <small>IT SUPPORT NOC · HARDENING LAB</small>
+    </div>
+  </div>
+  <nav class="nodetabs" id="nodetabs" aria-label="Active node"></nav>
+  <div class="hright">
+    <div class="clock"><span id="clocktime">--:--:--</span><small>EAT · NAIROBI UTC+3</small></div>
+    <a class="ghlink" href="https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture" target="_blank" rel="noopener">REPO ↗</a>
+  </div>
+</header>
+
+<div class="banner">
+  <span class="tag">SIMULATION</span>
+  <span>This is a browser-based demonstration of the lab architecture — not captured evidence. Verified test results come from the physical lab build:</span>
+  <a href="https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/blob/main/05-validation-evidence/test_results.md" target="_blank" rel="noopener">05-validation-evidence ↗</a>
+  <a href="https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/blob/main/06-lab-build/lab-build-guide.md" target="_blank" rel="noopener">rebuild the real lab ↗</a>
+</div>
+
+<main>
+  <!-- ===== GUIDED LABS GRID ===== -->
+  <section id="v-labs" class="on">
+    <div class="viewhead">
+      <h2>Validation <em>Labs</em></h2>
+      <p>Walk through the six verification tests exactly as scripted in the repository — every output matches the documented architecture. Then open the free terminal and explore on your own.</p>
+    </div>
+    <div class="grid" id="cards"></div>
+  </section>
+
+  <!-- ===== LAB RUNNER ===== -->
+  <section id="v-run">
+    <div class="crumb">
+      <button class="backbtn" onclick="showLabs()">← all labs</button>
+      <div class="labtitle" id="runTitle"></div>
+    </div>
+    <p class="objective" id="runObjective"></p>
+    <div class="runwrap">
+      <div class="steps" id="runSteps"></div>
+      <div class="conwrap">
+        <div class="conhead"><span class="dot"></span><span id="runConName">GUIDED SESSION</span><span style="margin-left:auto" id="runProg"></span></div>
+        <div class="conout" id="runOut" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="finish" id="finish">
+      <div class="big">✓ Lab Complete</div>
+      <div id="finishText"></div>
+    </div>
+  </section>
+
+  <!-- ===== FREE TERMINAL ===== -->
+  <section id="v-term">
+    <div class="viewhead">
+      <h2>Free-Play <em>Terminal</em></h2>
+      <p>Command output reflects live lab state — break DNS in lab T-05 and <code style="color:var(--cyan)">nslookup</code> fails here too until you revert it. Type <code style="color:var(--cyan)">help</code> for the command set of the active node.</p>
+    </div>
+    <div class="termwrap">
+      <div class="conwrap">
+        <div class="conhead"><span class="dot"></span><span id="termConName">CONSOLE</span></div>
+        <div class="conout" id="termOut" aria-live="polite" style="height:470px"></div>
+        <div class="tinput">
+          <span class="pr" id="termPrompt"></span>
+          <input id="termIn" autocomplete="off" spellcheck="false" aria-label="terminal input">
+        </div>
+      </div>
+      <div class="cheat" id="cheat"></div>
+    </div>
+  </section>
+</main>
+
+<div id="uac" role="dialog" aria-modal="true" aria-label="User Account Control">
+  <div class="uacbox" id="uacbox">
+    <div class="uhead"><span class="shield">🛡</span> Windows Security</div>
+    <div class="ubody">
+      <div style="margin-bottom:10px">Do you want to allow this app to make changes to your device?</div>
+      <div class="prog">
+        <div class="ico">⚙</div>
+        <div><b>installer.exe</b><span class="uacfoot">Verified publisher: Unknown Publisher · File origin: Hard drive on this computer</span></div>
+      </div>
+      <div class="cred" id="uaccred">⚠ <b>WIN-FIN01\awanjiru</b> is a standard user. Enter administrator credentials for <b>WIN-FIN01\awanjiru-adm</b> to continue.</div>
+      <div id="uacno" style="display:none; color:var(--red)">✗ This operation was blocked. A standard user cannot approve elevation — this is the account-tier boundary enforced by the Windows baseline (control #1–2).</div>
+    </div>
+    <div class="ubtns" id="uacbtns">
+      <button onclick="uacNo()">No</button>
+      <button class="primary" onclick="uacYes()">Yes</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  PROJECT 1 · AUTOMATED SME HELPDESK, ACCESS GOVERNANCE &amp; DUAL-OS ENDPOINT HARDENING ·
+  <a href="https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture" target="_blank" rel="noopener">GITHUB</a> ·
+  <a href="https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/" target="_blank" rel="noopener">DOCS PORTAL</a>
+</footer>
+
+<script>
+"use strict";
+/* ================= constants ================= */
+const REPO = "https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/blob/main/";
+const MD5 = "e2f7a1c94b6d3f80a5c1e9b2d7f4a683";
+const NODES = {
+  "LAP-IT01":  {ip:"192.168.56.1",  os:"winps", user:"itsupport", prompt:"PS C:\\Users\\itsupport>",        title:"LAP-IT01 · HELPDESK CONTROL NODE"},
+  "WIN-FIN01": {ip:"192.168.56.10", os:"win",   user:"awanjiru",  prompt:"C:\\Users\\awanjiru>",            title:"WIN-FIN01 · WINDOWS ENDPOINT (FINANCE/HR)"},
+  "SRV-LIN01": {ip:"192.168.56.20", os:"linux", user:"itsupport", prompt:"itsupport@SRV-LIN01:~$",          title:"SRV-LIN01 · UBUNTU SERVER 24.04 LTS"},
+};
+const HOSTS = {"LAP-IT01":"192.168.56.1","WIN-FIN01":"192.168.56.10","SRV-LIN01":"192.168.56.20"};
+
+/* ================= state ================= */
+const S = {
+  node:"LAP-IT01",
+  sshFrom:null,
+  dnsBroken:false,
+  fileDeleted:false,
+  restored:false,
+  backupDaily:null,
+  completed:new Set(),
+};
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ================= tiny DOM + print helpers ================= */
+const $ = id => document.getElementById(id);
+function el(tag, cls, html){const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+const wait = ms => new Promise(r=>setTimeout(r, reduced?0:ms));
+async function typeLine(outEl, text, cls, cps=90){
+  const l = el("div","ln "+cls);
+  outEl.appendChild(l);
+  if(reduced){ l.textContent=text; scrollOut(outEl); return; }
+  for(let i=0;i<text.length;i++){
+    l.textContent += text[i];
+    if(i%3===0) scrollOut(outEl);
+    await wait(1000/cps);
+  }
+  scrollOut(outEl);
+}
+function printLines(outEl, lines, instant=false){
+  let d = Promise.resolve();
+  lines.forEach(([text,cls])=>{
+    d = d.then(()=> instant ? (outEl.appendChild(el("div","ln "+cls,esc(text))), Promise.resolve(wait(26))) : typeLine(outEl,text,cls,260));
+  });
+  return d;
+}
+function scrollOut(o){ o.scrollTop = o.scrollHeight; }
+const L = (text,cls="")=>[text,cls];   // line builder
+
+/* ================= clock ================= */
+const fmt = new Intl.DateTimeFormat("en-GB",{timeZone:"Africa/Nairobi",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+setInterval(()=>{ $("clocktime").textContent = fmt.format(new Date()); },1000);
+
+/* ================= views ================= */
+function showView(id){
+  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("on", s.id===id));
+  window.scrollTo({top:0, behavior:reduced?"auto":"smooth"});
+}
+function showLabs(){ showView("v-labs"); }
+
+/* ================= node tabs ================= */
+function renderTabs(){
+  const n = $("nodetabs"); n.innerHTML="";
+  Object.entries(NODES).forEach(([name,nd])=>{
+    const t = el("div","ntab"+(S.node===name?" active":""));
+    t.innerHTML = `<b>${name}</b><span class="ip">${nd.ip}</span>`;
+    t.onclick = ()=> setNode(name, `console switched to ${name}`);
+    n.appendChild(t);
+  });
+}
+function setNode(name, why){
+  S.node = name;
+  renderTabs();
+  $("termConName").textContent = NODES[name].title;
+  $("termPrompt").textContent = NODES[name].prompt;
+  renderCheat();
+  if(why) termPrint([L(`[${why}]`,"dim")]);
+}
+
+/* ================= free terminal ================= */
+let hist=[], histIx=-1;
+function termPrint(lines, instant=false){ printLines($("termOut"), lines, instant); scrollOut($("termOut")); }
+function renderCheat(){
+  const os = NODES[S.node].os;
+  const cmds = {
+    winps:[["help","command set"],["ping SRV-LIN01","reachability"],["Test-NetConnection 192.168.56.10 -Port 3389","firewall check"],["Test-NetConnection 192.168.56.20 -Port 22","firewall check"],["ssh itsupport@192.168.56.20","open a session"],["whoami","identity"],["clear","clear screen"]],
+    win:  [["help","command set"],["whoami /groups","account tiers"],["net user guest","baseline check"],["ipconfig /all","network config"],["ping SRV-LIN01","reachability"],["nslookup google.com","DNS test"],["icacls C:\\Corp\\IT-Admin-Logs","RBAC audit"],["net user hacker /add","try to install?!"],["clear","clear screen"]],
+    linux:[["help","command set"],["ufw status verbose","firewall"],["sshd -T | grep -E 'passwordauthentication|permitrootlogin'","SSH baseline"],["fail2ban-client status sshd","brute-force lockout"],["sudo tail -6 /var/log/auth.log","audit log"],["backup-restore.sh list","3-2-1 backups"],["md5sum /srv/company-data/reports/quarterly-summary.odt","integrity"],["ping google.com","DNS test"],["exit","leave SSH session"]],
+  }[os];
+  const c = $("cheat"); c.innerHTML = `<h4>${S.node} · Commands</h4>`;
+  cmds.forEach(([cmd,d])=>{ const e=el("code","",esc(cmd)); e.title=d; e.onclick=()=>{ $("termIn").value=cmd; $("termIn").focus(); }; c.appendChild(e); });
+  c.appendChild(el("div","hint","click a command to fill the prompt · ↑/↓ history · Tab autocomplete"));
+}
+function prompt(){ return NODES[S.node].prompt; }
+
+$("termIn").addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    const v = e.target.value.trim();
+    e.target.value="";
+    if(v){ hist.push(v); histIx=hist.length; }
+    runCommand(v);
+  } else if(e.key==="ArrowUp"){ if(histIx>0){histIx--; e.target.value=hist[histIx]||"";} e.preventDefault(); }
+  else if(e.key==="ArrowDown"){ if(histIx<hist.length){histIx++; e.target.value=hist[histIx]||"";} e.preventDefault(); }
+  else if(e.key==="Tab"){ e.preventDefault(); const v=e.target.value; const m=Object.keys(CMDS[NODES[S.node].os]).find(c=>c.startsWith(v)&&v); if(m) e.target.value=m; }
+});
+document.addEventListener("click", e=>{ if($("v-term").classList.contains("on") && !e.target.closest("a,code,button")) $("termIn").focus(); });
+
+/* ---- state-aware command engine ---- */
+const CMDS = {
+  winps: { // LAP-IT01 host (PowerShell)
+    help(){ return [L("Control node command set (admin workstation on 192.168.56.0/24):","dim"),
+      L("  ping <host|ip>            reachability"), L("  Test-NetConnection <ip> [-Port n]   firewall verification (T-03)"),
+      L("  ssh <user>@192.168.56.20  key-based session to SRV-LIN01"), L("  whoami · ipconfig · clear")]; },
+    whoami(){ return [L("win-host\\itsupport")]; },
+    ipconfig(){ return [L(""), L("Windows IP Configuration"), L(""), L("Ethernet adapter VirtualBox Host-Only Network:"), L("   IPv4 Address. . . . . . . . . . . : 192.168.56.1 (Preferred)","ok"), L("   Subnet Mask . . . . . . . . . . . : 255.255.255.0"), L("   Default Gateway . . . . . . . . . : (none — management path stays isolated)","dim")]; },
+    ping(a){ return pingCmd(a); },
+    "test-netconnection"(a){ return tnc(a); },
+    tnc(a){ return tnc(a); },
+    ssh(a){ return sshCmd(a); },
+    clear(){ $("termOut").innerHTML=""; return []; },
+    cls(){ $("termOut").innerHTML=""; return []; },
+  },
+  win: { // WIN-FIN01 as standard user awanjiru
+    help(){ return [L("WIN-FIN01 — signed in as STANDARD user awanjiru (Finance).","dim"),
+      L("Try: whoami /groups · net user guest · ipconfig /all · nslookup google.com · icacls C:\\Corp\\IT-Admin-Logs","dim"),
+      L("Also try: net user hacker /add  — see what the identity boundary does.","dim")]; },
+    whoami(a){ if(a.join("")==="/groups") return [L("WIN-FIN01\\awanjiru","ok"), L(""), L("GROUP INFORMATION"), L("-------------------"), L("Group Name                             Type"), L("======================================= ================"), L("WIN-FIN01\\GRP-Finance                  Group"), L("Everyone                               Well-known group"), L("Users                                  Well-known group"), L(""), L("Administrators membership: **none** — elevation requires awanjiru-adm (UAC).","dim")]; return [L("win-fin01\\awanjiru")]; },
+    "net"(a){ if(a[0]==="user"&&a[1]==="guest") return [L("User name                    Guest"), L("Account active               No","ok"), L("Password never expires       No"), L(""), L("The command completed successfully.")];
+      if(a[0]==="user" && a.some(x=>/^\/add$/i.test(x))) return [L("System error 5 has occurred.","err"), L("Access is denied.","err"), L(""), L("awanjiru is a standard user — software installs and account changes need awanjiru-adm. See T-01.","dim")];
+      if(a[0]==="user") return [L("User accounts for \\\\WIN-FIN01:"), L(""), L("awanjiru            awanjiru-adm        Guest               itsupport"), L(""), L("The command completed successfully.")];
+      if(a[0]==="localgroup") return [L("Aliases for \\\\WIN-FIN01:"), L(""), L("*Administrators      *GRP-Finance        *GRP-Interns"), L("*GRP-ITSUPPORT       *GRP-Operations     *Users"), L(""), L("The command completed successfully.")];
+      return [L("The syntax of this command is not supported in this simulation. Try: net user / net localgroup / net user guest","dim")]; },
+    ipconfig(a){ const all = a.join(" ").includes("/all");
+      const out = [L(""), L("Windows IP Configuration"), L(""), L("Ethernet adapter Ethernet (NAT):"), L("   IPv4 Address. . . . . . . . . . . : 10.0.2.15 (Preferred)"), L("   Default Gateway . . . . . . . . . : 10.0.2.2"), L(""), L("Ethernet adapter Ethernet 2 (Host-Only):"), L("   IPv4 Address. . . . . . . . . . . : 192.168.56.10 (Preferred)","ok"), L("   Subnet Mask . . . . . . . . . . . : 255.255.255.0"), S.dnsBroken ? L("   DNS Servers . . . . . . . . . . . : 192.168.56.53   ← NONEXISTENT (broken in T-05)","err") : L("   DNS Servers . . . . . . . . . . . : (blank — names come from the hosts file)"), L("")];
+      if(all) out.push(L("   Host Name . . . . . . . . . . . . : WIN-FIN01"), L("   Node Type . . . . . . . . . . . . : Hybrid"));
+      return out; },
+    ping(a){ return pingCmd(a); },
+    nslookup(a){ return nslookupCmd(a); },
+    icacls(a){ const p=(a[0]||"").replace(/"/g,"");
+      if(!/^C:\\Corp\\(Finance-Shared|Company-Templates|IT-Admin-Logs)$/i.test(p)) return [L("Usage: icacls \"C:\\Corp\\<share>\"","dim")];
+      const acl = { "C:\\Corp\\Finance-Shared":[["GRP-Finance:(OI)(CI)M","ok"],["GRP-ITSUPPORT:(OI)(CI)RX",""],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]],
+                    "C:\\Corp\\Company-Templates":[["GRP-Finance:(OI)(CI)RX",""],["GRP-Operations:(OI)(CI)RX",""],["GRP-ITSUPPORT:(OI)(CI)M","ok"],["GRP-Interns:(OI)(CI)RX",""],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]],
+                    "C:\\Corp\\IT-Admin-Logs":[["GRP-ITSUPPORT:(OI)(CI)F","ok"],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]] }[p];
+      return [L(p+" "), ...acl.map(([t,c])=>L("                      "+t,c)), L(""), L("Successfully processed 1 files. (Note: GRP-Finance holds NO grant on IT-Admin-Logs.)","dim")]; },
+    dir(a){ if((a.join(" ").toLowerCase()).includes("it-admin-logs")) return [L("Access is denied.","err"), L(""), L("awanjiru ∉ GRP-ITSUPPORT → no ACL grant on C:\\Corp\\IT-Admin-Logs (RBAC matrix). See T-04.","dim")]; return [L(" Directory of C:\\Users\\awanjiru"), L(""), L("Documents/          Desktop/            Downloads/")]; },
+    "set-dnsclientserveraddress"(a){ return dnsSet(a); },
+    clear(){ $("termOut").innerHTML=""; return []; },
+    cls(){ $("termOut").innerHTML=""; return []; },
+  },
+  linux: { // SRV-LIN01 (or SSH session from host)
+    help(){ return [L("SRV-LIN01 — Ubuntu Server 24.04 LTS, key-only SSH, UFW default-deny.","dim"),
+      L("Try: ufw status verbose · sshd -T | grep -E 'passwordauthentication|permitrootlogin'","dim"),
+      L("     fail2ban-client status sshd · sudo tail -6 /var/log/auth.log","dim"),
+      L("     backup-restore.sh list · md5sum /srv/company-data/reports/quarterly-summary.odt · exit","dim")]; },
+    whoami(){ return [L("itsupport")]; },
+    ping(a){ return pingCmd(a, true); },
+    ls(a){ const p=(a[0]||""); if(p.includes("company-data")){ if(S.fileDeleted) return [L("reports/","dim")]; return [L("reports/","dim"), L("reports/quarterly-summary.odt","ok")]; } return [L("snap/  Documents/  lab-notes.md","dim")]; },
+    md5sum(a){ if(S.fileDeleted && !S.restored && (a.join(" ").includes("quarterly-summary"))) return [L("md5sum: /srv/company-data/reports/quarterly-summary.odt: No such file or directory","err")];
+      return [L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok")]; },
+    sudo(a){ const rest = a.join(" ");
+      if(rest.startsWith("tail")) return [L("Nov 24 18:02:11 SRV-LIN01 sshd[1247]: Connection closed by 192.168.56.1 port 55234 [preauth]"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: User root from 192.168.56.1 not allowed because not listed in AllowUsers","warn"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: Connection closed by 192.168.56.1 port 55236 [preauth]"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Failed publickey for itsupport from 192.168.56.1 port 55240 ssh2: ED25519 SHA256:xK9…mQ2"), L("Nov 24 18:02:41 SRV-LIN01 sudo:  itsupport : TTY=pts/0 ; PWD=/home/itsupport ; COMMAND=/usr/bin/fail2ban-client status sshd","ok"), L("Nov 24 18:04:02 SRV-LIN01 systemd[1]: unattended-upgrades.service: Security update applied — no interaction required","dim")];
+      if(rest.startsWith("cat") && rest.includes("sshd_config")) return [L("# key-only remote access (linux-baseline row 1-2)"), L("PasswordAuthentication no","ok"), L("KbdInteractiveAuthentication no","ok"), L("PubkeyAuthentication yes","ok"), L("PermitRootLogin no","ok")];
+      return [L("sudo: command available in this simulation: sudo tail · sudo cat /etc/ssh/sshd_config","dim")]; },
+    ufw(a){ if(a.join(" ").includes("verbose")) return [L("Status: active","ok"), L("Logging: on (low)"), L("Default: deny (incoming), allow (outgoing), disabled (routed)","ok"), L(""), L("To                         Action      From"), L("--                         ------      ----"), L("22/tcp                     ALLOW IN    192.168.56.0/24","ok"), L("22/tcp (v6)                ALLOW IN    fd00::/8")];
+      return [L("Status: active","ok")]; },
+    "sshd"(a){ if(a.join(" ").includes("-T")) return [L("permitrootlogin no","ok"), L("passwordauthentication no","ok"), L("kbdinteractiveauthentication no","ok"), L("pubkeyauthentication yes","ok"), L("maxauthtries 6"), L(""), L("(linux-baseline rows 1-2 verified — see T-02)","dim")];
+      return [L("sshd: usage — try: sshd -T | grep -E 'passwordauthentication|permitrootlogin'","dim")]; },
+    "fail2ban-client"(a){ if(a.join(" ").includes("sshd")) return [L("Status for the jail: sshd","ok"), L("|- Filter"), L("|  |- Currently failed:  3  (all from 192.168.56.1 — your earlier password attempts)","dim"), L("|  |- Total failed:      3"), L("|  `- File list:        /var/log/auth.log"), L("`- Actions"), L("   |- Currently banned: 0","ok"), L("   `- Total banned:     0   (ban rule: 5 failures in 10 min → 30 min ban)")];
+      return [L("Jails: sshd")]; },
+    "backup-restore.sh"(a){ return backupCmd(a); },
+    cat(a){ return [L("cat: use sudo cat /etc/ssh/sshd_config or md5sum in this simulation","dim")]; },
+    exit(){ if(S.sshFrom){ const back=S.sshFrom; S.sshFrom=null; S.node=back; renderTabs(); $("termConName").textContent=NODES[back].title; $("termPrompt").textContent=NODES[back].prompt; renderCheat(); return [L("logout"), L("Connection to 192.168.56.20 closed."), L("["+(new Date()).toLocaleTimeString()+" · back on "+back+"]","dim")]; } return [L("exit: not in an SSH session","dim")]; },
+    clear(){ $("termOut").innerHTML=""; return []; },
+  },
+};
+
+/* ---- shared command impls ---- */
+function pingCmd(a, linux=false){
+  const t = (a[0]||"").replace(/^ping\s+/i,"");
+  if(!t) return [L("usage: ping <host|ip>","dim")];
+  const ip = HOSTS[t] || (/^\d+\.\d+\.\d+\.\d+$/.test(t)? t : (t.includes(".")? (S.dnsBroken? null : "142.250.183.14") : null));
+  if(!ip) return [L((linux?"ping: ":"Ping request could not find host "), t+". Please check the name and try again.","err"),
+                  L("Name resolution failed while IP-level connectivity is fine → DNS-layer failure (Runbook A step 5).","dim")];
+  return [L("Pinging "+t+" ["+ip+"] with 32 bytes of data:"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L(""), L("Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)","dim")];
+}
+function nslookupCmd(a){
+  const t=(a[0]||"google.com");
+  if(S.dnsBroken) return [L("Server:  UnKnown"), L("Address:  192.168.56.53"), L(""), L("DNS request timed out.","err"), L("    timeout was 2 seconds.","err"), L("DNS request timed out.","err"), L("DNS request timed out.","err"), L("*** Request to 192.168.56.53 timed-out","err"), L(""), L("IP-level ping still works → failure isolated to the DNS layer (Runbook A).","dim")];
+  const known = HOSTS[t]; if(known) return [L("Server:  hosts-file (lab name resolution)"), L("Address:  n/a"), L(""), L("Name:    "+t), L("Address:  "+known,"ok")];
+  return [L("Server:  resolver (via NAT)"), L("Address:  10.0.2.3"), L(""), L("Non-authoritative answer:"), L("Name:    "+t), L("Address:  142.250.183.14","ok")];
+}
+function tnc(a){
+  const joined=a.join(" "); const ipm=joined.match(/(\d+\.\d+\.\d+\.\d+)/); const pm=joined.match(/-Port\s+(\d+)/i);
+  if(!ipm) return [L("usage: Test-NetConnection <ip> [-Port n]","dim")];
+  const ip=ipm[1]; const port=pm?+pm[1]:null;
+  const table={"192.168.56.10":{22:0,135:0,3389:1,445:0,5985:0},"192.168.56.20":{22:1,80:0,443:0,3389:0}};
+  const open = port!=null ? (table[ip]?table[ip][port]:0)===1 : true;
+  const out=[L(""), L("ComputerName           : "+ip), L("RemoteAddress          : "+ip)];
+  if(port!=null) out.push(L("RemotePort             : "+port));
+  out.push(L("TcpTestSucceeded       : "+(open?"True":"False"), open?"ok":"err"));
+  out.push(L(""));
+  if(port!=null && !open) out.push(L("Filtered/dropped — default-deny inbound. Only scoped ports answer: WIN-FIN01 3389 · SRV-LIN01 22 (mgmt subnet only). See T-03.","dim"));
+  if(port!=null && open) out.push(L("Permitted — this port is explicitly scoped to the management subnet by the host firewall.","ok"));
+  return out;
+}
+function sshCmd(a){
+  const j=a.join(" ");
+  const m=j.match(/(\w+)@(\d+\.\d+\.\d+\.\d+)/); const user=m?m[1]:""; const ip=m?m[2]:"";
+  if(!ip) return [L("usage: ssh <user>@192.168.56.20","dim")];
+  const passwordForced = /PreferredAuthentications=password|PubkeyAuthentication=no/i.test(j);
+  if(user==="root"||passwordForced){
+    return [L("The authenticity warning is skipped — host key already trusted."), L(user+"@"+ip+": Permission denied (publickey).","err"), L(""), L("Password and direct-root access are architecturally impossible: sshd accepts keys only, PermitRootLogin no. See T-02.","dim")];
+  }
+  if(user!=="itsupport") return [L(user+"@"+ip+": Permission denied (publickey).","err")];
+  if(S.node!=="LAP-IT01") return [L(user+"@"+ip+": Permission denied (publickey).","err"), L("(Only LAP-IT01 holds the deployed admin key — 192.168.56.0/24 scope limits who can even try.)","dim")];
+  S.sshFrom=S.node; setNode("SRV-LIN01", null);
+  return [L("Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8.0-40-generic x86_64)","ok"), L(""), L(" * Documentation:  https://help.ubuntu.com"), L(""), L("Last login: Mon Nov 24 17:44:02 2026 from 192.168.56.1"), L(""), L("[key-based login succeeded — session now runs on SRV-LIN01; type 'exit' to return]","dim")];
+}
+function dnsSet(a){
+  const j=a.join(" ");
+  if(/ResetServerAddresses/i.test(j)){ S.dnsBroken=false; return [L("DNS servers on \"Ethernet 2\" reset to DHCP/blank.","ok"), L("Name resolution restored — hosts-file + NAT resolver.","dim")]; }
+  S.dnsBroken=true; return [L("DNS servers on \"Ethernet 2\" set to 192.168.56.53 (nonexistent).","warn"), L("Runbook A ladder is now live: ping by IP works, nslookup fails. Try: nslookup google.com","dim")];
+}
+function backupCmd(a){
+  const m=a[0]||"";
+  if(m==="daily"){ S.backupDaily="daily/2026-11-24"; return [L("Daily snapshot -> /srv/backups/"+S.backupDaily,"ok"), L("(hardlink-deduplicated against the previous snapshot)","dim")]; }
+  if(m==="weekly"){ return [L("Full weekly snapshot -> /srv/backups/weekly/2026-11-22","ok")]; }
+  if(m==="list"){ return [L("--- daily ---"), L("2026-11-24","ok"), L("--- weekly ---"), L("2026-11-22","ok")]; }
+  if(m==="restore"){
+    if(!a[1]||!a[2]) return [L("Usage: backup-restore.sh restore <snapshot> <relative-path>","dim"), L("e.g.   backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt","dim")];
+    S.restored=true; S.fileDeleted=false;
+    return [L("Restored: /srv/backups/"+a[1]+"/"+a[2]+" -> /srv/company-data/"+a[2],"ok"), L("Checksum of restored file:"), L(MD5+"  /srv/company-data/"+a[2],"ok"), L(""), L("Bit-identical to the pre-deletion checksum — Pillar 5 proven, not assumed.","dim")];
+  }
+  return [L("Usage: backup-restore.sh daily|weekly|restore <snapshot> <relative-path>|list","dim")];
+}
+
+function runCommand(raw){
+  termPrint([L(prompt()+" "+raw,"cmd")], true);
+  if(!raw) return;
+  const parts = raw.split(/\s+/);
+  const table = CMDS[NODES[S.node].os];
+  const key = parts[0].toLowerCase();
+  const fn = table[key];
+  const out = fn ? fn(parts.slice(1)) : [
+    NODES[S.node].os==="linux" ? L(key+": command not found","err") : L("'"+key+"' is not recognized as an internal or external command, operable program or batch file.","err"),
+    L("type 'help' for the "+S.node+" command set","dim")];
+  termPrint(out);
+}
+
+/* ================= UAC modal ================= */
+let uacResolve=null;
+function uacOpen(){ $("uac").classList.add("on"); $("uacno").style.display="none"; $("uacbtns").style.display="flex"; return new Promise(r=>uacResolve=r); }
+function uacYes(){ const box=$("uacbox"); box.classList.add("shake"); setTimeout(()=>box.classList.remove("shake"),450);
+  $("uacno").style.display="block"; $("uacbtns").style.display="none";
+  setTimeout(()=>{ $("uac").classList.remove("on"); uacResolve&&uacResolve("denied"); }, reduced?300:1700); }
+function uacNo(){ $("uac").classList.remove("on"); uacResolve&&uacResolve("cancelled"); }
+
+/* ================= guided labs ================= */
+const LABS = [
+ { id:"T-01", acc:"var(--amber)", title:"Standard-User Privilege Boundary", node:"WIN-FIN01",
+   objective:"Prove the identity architecture: a standard user (awanjiru) cannot install software or alter security settings. Every elevation demand lands on the username-adm boundary.",
+   doc:"03-hardening-baselines/windows-baseline.md",
+   finish:"UAC blocked both attempts without awanjiru-adm credentials. Account-tier separation works exactly as the Windows baseline specifies.",
+   steps:[
+    { node:"WIN-FIN01", cmd:"whoami /groups", note:"Establish the session's identity and group memberships.", label:"Run whoami /groups",
+      out:()=>[L("C:\\Users\\awanjiru> whoami /groups","cmd"), L("WIN-FIN01\\awanjiru","ok"), L(""), L("Group Name                             Type"), L("======================================= ================"), L("WIN-FIN01\\GRP-Finance                  Group"), L("Everyone                               Well-known group"), L("Users                                  Well-known group"), L(""), L("No Administrators membership — day-to-day account only (JML policy §2).","dim")] },
+    { node:"WIN-FIN01", ui:true, label:"Run installer.exe (needs elevation)", note:"Attempt to install unapproved software as the standard user.",
+      run: async (out)=>{
+        await printLines(out, [L("C:\\Users\\awanjiru> installer.exe","cmd"), L(""), L("Requesting elevation…","dim")]);
+        const r = await uacOpen();
+        return [L(""), r==="denied"
+          ? L("Windows Security: elevation DENIED — admin credentials required (awanjiru-adm).","err")
+          : L("Operation cancelled by user.","warn"),
+          L("T-01 part 1 captured: the UAC boundary holds. (windows-baseline rows 1-2)","dim")];
+      } },
+    { node:"WIN-FIN01", cmd:"netsh advfirewall set allprofiles state off", note:"Attempt to disable the host firewall — a security-control change.",
+      out:()=>[L("C:\\Users\\awanjiru> netsh advfirewall set allprofiles state off","cmd"), L("The requested operation requires elevation.","err"), L(""), L("Firewall remains ON across all 3 profiles. T-01 complete.","dim")] },
+   ]},
+ { id:"T-02", acc:"var(--ph)", title:"Linux SSH Key-Only Enforcement", node:"LAP-IT01",
+   objective:"Prove password-based and direct-root SSH are architecturally impossible on SRV-LIN01 — key-only auth, PermitRootLogin no, fail2ban watching.",
+   doc:"03-hardening-baselines/linux-baseline.md",
+   finish:"Both connections rejected at the protocol level. sshd config confirms key-only + no root. Auth log records every attempt for the audit trail.",
+   steps:[
+    { node:"LAP-IT01", cmd:"ssh -o PreferredAuthentications=password itsupport@192.168.56.20", note:"Force password authentication — the baseline forbids it.",
+      out:()=>[L("PS C:\\Users\\itsupport> ssh -o PreferredAuthentications=password itsupport@192.168.56.20","cmd"), L("itsupport@192.168.56.20: Permission denied (publickey).","err"), L(""), L("Server offered exactly one method: publickey.","dim")] },
+    { node:"LAP-IT01", cmd:"ssh root@192.168.56.20", note:"Attempt direct root login — PermitRootLogin no.",
+      out:()=>[L("PS C:\\Users\\itsupport> ssh root@192.168.56.20","cmd"), L("root@192.168.56.20: Permission denied (publickey).","err"), L(""), L("No password prompt ever appeared — passwords are not part of the protocol surface.","dim")] },
+    { node:"SRV-LIN01", cmd:"sshd -T | grep -E 'passwordauthentication|permitrootlogin'", note:"Read the effective sshd configuration on the server.",
+      out:()=>[L("itsupport@SRV-LIN01:~$ sshd -T | grep -E 'passwordauthentication|permitrootlogin'","cmd"), L("permitrootlogin no","ok"), L("passwordauthentication no","ok"), L(""), L("linux-baseline rows 1-2 verified.","dim")] },
+    { node:"SRV-LIN01", cmd:"sudo tail -4 /var/log/auth.log", note:"Every rejected attempt is retained for audit (Pillar 5).",
+      out:()=>[L("itsupport@SRV-LIN01:~$ sudo tail -4 /var/log/auth.log","cmd"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: User root from 192.168.56.1 not allowed because not listed in AllowUsers","warn"), L("Nov 24 18:02:14 SRV-LIN01 sshd[1249]: Connection closed by 192.168.56.1 port 55236 [preauth]"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Failed publickey for itsupport from 192.168.56.1 port 55240 ssh2: ED25519 SHA256:xK9…mQ2"), L("Nov 24 18:02:16 SRV-LIN01 sshd[1251]: Connection closed by 192.168.56.1 port 55240 [preauth]"), L(""), L("Audit trail intact — who, when, what method, from where.","dim")] },
+   ]},
+ { id:"T-03", acc:"var(--cyan)", title:"Port Scan Against Hardened Endpoints", node:"LAP-IT01",
+   objective:"Prove the default-deny posture: from the control node, only explicitly scoped management ports answer — everything else is filtered.",
+   doc:"05-validation-evidence/test_results.md",
+   finish:"Only WIN-FIN01:3389 (RDP) and SRV-LIN01:22 (SSH) answered — both scoped to 192.168.56.0/24. Ten other probes were dropped.",
+   steps:[
+    { node:"LAP-IT01", cmd:"22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }", note:"Sweep WIN-FIN01: scoped port (3389) vs unscoped ports.",
+      out:()=>[L("PS C:\\Users\\itsupport> 22,135,3389,445,5985 | % { Test-NetConnection 192.168.56.10 -Port $_ }","cmd"), L("WIN-FIN01 port 22   : False","err"), L("WIN-FIN01 port 135  : False","err"), L("WIN-FIN01 port 3389 : True","ok"), L("WIN-FIN01 port 445  : False","err"), L("WIN-FIN01 port 5985 : False","err"), L(""), L("Only the IT-support RDP rule answers — scoped to 192.168.56.0/24.","dim")] },
+    { node:"LAP-IT01", cmd:"22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }", note:"Sweep SRV-LIN01: scoped port (22) vs unscoped ports.",
+      out:()=>[L("PS C:\\Users\\itsupport> 22,80,443,3389 | % { Test-NetConnection 192.168.56.20 -Port $_ }","cmd"), L("SRV-LIN01 port 22   : True","ok"), L("SRV-LIN01 port 80   : False","err"), L("SRV-LIN01 port 443  : False","err"), L("SRV-LIN01 port 3389 : False","err"), L(""), L("One service, one subnet, nothing else — UFW default-deny holds.","dim")] },
+   ]},
+ { id:"T-04", acc:"var(--red)", title:"RBAC Folder Access Control", node:"WIN-FIN01",
+   objective:"Prove departmental least privilege: Finance (awanjiru) is denied IT-Admin-Logs, and the ACL listing shows exactly who holds grants.",
+   doc:"02-identity-and-access/rbac-matrix.md",
+   finish:"Access denied by group-level ACL — GRP-Finance holds no grant on the path. Deny-by-default, explicit grants only.",
+   steps:[
+    { node:"WIN-FIN01", cmd:"dir \\\\WIN-FIN01\\IT-Admin-Logs", note:"As awanjiru (Finance), attempt to open the IT-admin-only share.",
+      out:()=>[L("C:\\Users\\awanjiru> dir \\\\WIN-FIN01\\IT-Admin-Logs","cmd"), L("Access is denied.","err"), L(""), L("awanjiru ∈ GRP-Finance — that group holds no grant on IT-Admin-Logs.","dim")] },
+    { node:"WIN-FIN01", cmd:"icacls \"C:\\Corp\\IT-Admin-Logs\"", note:"Audit the authoritative ACL (administrative view).",
+      out:()=>[L("C:\\Users\\awanjiru> icacls \"C:\\Corp\\IT-Admin-Logs\"","cmd"), L("C:\\Corp\\IT-Admin-Logs"), L("                      GRP-ITSUPPORT:(OI)(CI)F","ok"), L("                      SYSTEM:(OI)(CI)F"), L("                      Administrators:(OI)(CI)F"), L(""), L("Successfully processed 1 files"), L(""), L("Matches the RBAC matrix exactly. T-04 complete.","dim")] },
+   ]},
+ { id:"T-05", acc:"var(--violet)", title:"DNS Failure Isolation (Runbook A)", node:"WIN-FIN01",
+   objective:"Break DNS deliberately, then run the Runbook A ladder: the failure must isolate cleanly to the DNS layer while IP connectivity stays healthy. This lab mutates live terminal state.",
+   doc:"04-troubleshooting-runbooks/runbook-a-no-internet.md",
+   finish:"Ladder verdict: IP reachable (gateway + external), name resolution dead → DNS layer. This is exactly the Runbook A decision path — then we reverted the change.",
+   steps:[
+    { node:"WIN-FIN01", cmd:'Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53', note:"Point the host-only adapter at a nonexistent DNS server.",
+      out:()=>{ S.dnsBroken=true; return [L('C:\\Users\\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ServerAddresses 192.168.56.53','cmd'), L("DNS servers set to 192.168.56.53 — a server that does not exist.","warn"), L(""), L("[lab state changed: free-terminal nslookup now fails too]","dim")]; } },
+    { node:"WIN-FIN01", cmd:"ping 192.168.56.1", note:"Runbook A step 3 — gateway reachability.",
+      out:()=>[L("C:\\Users\\awanjiru> ping 192.168.56.1","cmd"), L("Reply from 192.168.56.1: bytes=32 time<1ms TTL=128","ok"), L("Reply from 192.168.56.1: bytes=32 time<1ms TTL=128","ok"), L(""), L("PASS — physical/link/IP layers healthy.","dim")] },
+    { node:"WIN-FIN01", cmd:"ping 8.8.8.8", note:"Runbook A step 4 — reach beyond the gateway (via NAT).",
+      out:()=>[L("C:\\Users\\awanjiru> ping 8.8.8.8","cmd"), L("Reply from 8.8.8.8: bytes=32 time=48ms TTL=113","ok"), L("Reply from 8.8.8.8: bytes=32 time=47ms TTL=113","ok"), L(""), L("PASS — routing is fine. The problem is not the network.","dim")] },
+    { node:"WIN-FIN01", cmd:"nslookup google.com", note:"Runbook A step 5 — name resolution.",
+      out:()=>[L("C:\\Users\\awanjiru> nslookup google.com","cmd"), L("DNS request timed out.","err"), L("    timeout was 2 seconds.","err"), L("*** Request to 192.168.56.53 timed-out","err"), L(""), L("VERDICT: IP passes, name fails → DNS-layer failure (Runbook A isolation complete).","violet")] },
+    { node:"WIN-FIN01", cmd:"Set-DnsClientServerAddress -InterfaceAlias \"Ethernet 2\" -ResetServerAddresses", note:"Resolve the incident: revert DNS and re-verify.",
+      out:()=>{ S.dnsBroken=false; return [L('C:\\Users\\awanjiru> Set-DnsClientServerAddress -InterfaceAlias "Ethernet 2" -ResetServerAddresses',"cmd"), L("DNS servers reset.","ok"), L("C:\\Users\\awanjiru> nslookup google.com","cmd"), L("Name:    google.com"), L("Address:  142.250.183.14","ok"), L(""), L("Service restored — and the root-cause prevention note goes in the ticket.","dim")]; } },
+   ]},
+ { id:"T-06", acc:"var(--blue)", title:"Backup Restore (3-2-1)", node:"SRV-LIN01",
+   objective:"A backup that has never been restored is not a backup. Delete a staff file, then restore it bit-identical from the scheduled snapshot.",
+   doc:"05-validation-evidence/test_results.md",
+   finish:"Deleted file returned with a matching checksum — Pillar 5 (Backup, Change Management & Auditability) demonstrated end to end.",
+   steps:[
+    { node:"SRV-LIN01", cmd:"md5sum /srv/company-data/reports/quarterly-summary.odt", note:"Record the file's integrity fingerprint BEFORE anything happens.",
+      out:()=>[L("itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt","cmd"), L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok")] },
+    { node:"SRV-LIN01", cmd:"backup-restore.sh daily", note:"Confirm a fresh scheduled snapshot exists (cron runs this at 18:00 daily).",
+      out:()=>[L("itsupport@SRV-LIN01:~$ backup-restore.sh daily","cmd"), L("Daily snapshot -> /srv/backups/daily/2026-11-24","ok"), L("(hardlink-deduplicated against the previous snapshot)","dim")] },
+    { node:"SRV-LIN01", cmd:"rm /srv/company-data/reports/quarterly-summary.odt", note:"Simulate the staff accident.",
+      out:()=>{ S.fileDeleted=true; return [L("itsupport@SRV-LIN01:~$ rm /srv/company-data/reports/quarterly-summary.odt","cmd"), L("[file deleted]","err"), L("itsupport@SRV-LIN01:~$ md5sum /srv/company-data/reports/quarterly-summary.odt","cmd"), L("md5sum: /srv/company-data/reports/quarterly-summary.odt: No such file or directory","err"), L("[lab state changed: the file is gone in the free terminal too]","dim")]; } },
+    { node:"SRV-LIN01", cmd:"backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt", note:"Restore from the scheduled snapshot.",
+      out:()=>{ S.restored=true; S.fileDeleted=false; return [L("itsupport@SRV-LIN01:~$ backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt","cmd"), L("Restored: /srv/backups/daily/2026-11-24/reports/quarterly-summary.odt -> /srv/company-data/reports/quarterly-summary.odt","ok"), L("Checksum of restored file:"), L(MD5+"  /srv/company-data/reports/quarterly-summary.odt","ok"), L(""), L("Checksum matches the pre-deletion fingerprint — bit-identical. T-06 complete.","dim")]; } },
+   ]},
+];
+
+/* ---- cards ---- */
+function renderCards(){
+  const g=$("cards"); g.innerHTML="";
+  LABS.forEach((lab,i)=>{
+    const c=el("div","card"+(S.completed.has(lab.id)?" completed":""));
+    c.style.setProperty("--acc",lab.acc); c.style.animationDelay=(i*0.06)+"s";
+    c.innerHTML=`<span class="done-badge">✓ COMPLETED</span><span class="tid">${lab.id}</span><h3>${lab.title}</h3>
+      <p>${lab.objective.split(". ")[0]}.</p><div class="go">START LAB</div>`;
+    c.onclick=()=>openLab(lab);
+    g.appendChild(c);
+  });
+  const t=el("div","card terminal-card"); t.style.setProperty("--acc","var(--ph)"); t.style.animationDelay=(LABS.length*0.06)+"s";
+  t.innerHTML=`<div class="lead"><h3>Free-Play Terminal</h3><p>Switch between the control node, the Windows endpoint and the Ubuntu server. ~20 whitelisted commands, state-aware output, no install required.</p></div><div class="go">OPEN CONSOLE</div>`;
+  t.onclick=()=>{ showView("v-term"); $("termIn").focus(); };
+  g.appendChild(t);
+}
+
+/* ---- runner ---- */
+let curLab=null, curStep=0;
+function openLab(lab){
+  curLab=lab; curStep=0;
+  document.documentElement.style.setProperty("--acc", lab.acc);
+  showView("v-run");
+  $("runTitle").innerHTML=`<span class="tid">${lab.id}</span> ${lab.title}`;
+  $("runObjective").innerHTML = lab.objective + ` Full procedure & expected results: <a href="${REPO}${lab.doc}" target="_blank" rel="noopener">${lab.doc.split("/").pop()}</a>`;
+  $("finish").classList.remove("on");
+  $("runOut").innerHTML="";
+  const names = {T01:"WIN-FIN01 · standard user session",T02:"SSH FROM LAP-IT01 → SRV-LIN01",T03:"SCAN FROM LAP-IT01",T04:"WIN-FIN01 · FINANCE SESSION",T05:"WIN-FIN01 · RUNBOOK A",T06:"SRV-LIN01 · /SRV/COMPANY-DATA"};
+  $("runConName").textContent = names[lab.id.replace("-","")] || "GUIDED SESSION";
+  renderSteps();
+  printLines($("runOut"), [L(`— ${lab.id} · ${lab.title} —`,"cyan"), L("Click the first step to begin.","dim")], true);
+}
+function renderSteps(){
+  const box=$("runSteps"); box.innerHTML="";
+  curLab.steps.forEach((st,i)=>{
+    const d=el("div","step"+(i===curStep?" active":"")+(i<curStep?" done":""));
+    d.innerHTML=`<div class="sh"><span class="num">${i<curStep?"✓":i+1}</span><h4>${st.note}</h4><span class="nodechip">${st.node}</span></div>`;
+    if(i===curStep){
+      const b=el("button","",st.ui?st.label:"▶ "+st.label);
+      b.onclick=()=>runStep(i,b);
+      d.appendChild(b);
+    }
+    if(i<curStep) d.querySelector(".num").textContent="✓";
+    box.appendChild(d);
+  });
+  $("runProg").textContent = `${curStep}/${curLab.steps.length} steps`;
+}
+async function runStep(i,btn){
+  btn.disabled=true;
+  const st=curLab.steps[i];
+  let out;
+  if(st.ui){ out = await st.run($("runOut")); }
+  else{
+    await typeLine($("runOut"), NODES[st.node].prompt+" "+st.cmd, "cmd", reduced?0:120);
+    out = st.out(S);
+  }
+  await printLines($("runOut"), out);
+  await printLines($("runOut"), [L("")], true);
+  curStep=i+1; markStepDone(i);
+  if(curStep<curLab.steps.length){ renderSteps(); }
+  else{
+    renderSteps();
+    $("finishText").innerHTML = curLab.finish + ` &nbsp;<a href="${REPO}${curLab.doc}" target="_blank" rel="noopener">read the doc ↗</a> · <a href="#" onclick="openLab(curLab);return false">replay</a>`;
+    $("finish").classList.add("on");
+    S.completed.add(curLab.id); renderCards();
+  }
+}
+function markStepDone(i){ document.querySelectorAll("#runSteps .step")[i]?.classList.add("done"); }
+
+/* ================= boot ================= */
+$("boot").addEventListener("click",()=>$("boot").classList.add("done"));
+window.addEventListener("load",()=>{
+  setTimeout(()=>$("boot").classList.add("done"), reduced?0:1600);
+  renderCards(); renderTabs(); setNode("LAP-IT01", null);
+  termPrint([L("Savannah Logistics · IT Support NOC — interactive lab simulator.","cyan"),
+             L("Physical host LAP-IT01 (192.168.56.1) · endpoints WIN-FIN01 (.10) · SRV-LIN01 (.20).","dim"),
+             L("This console is a simulation; verified evidence lives in the repository.","dim"),
+             L("Type 'help' or open a guided lab from the Labs view.","dim")], true);
+});
+</script>
+</body>
+</html>
