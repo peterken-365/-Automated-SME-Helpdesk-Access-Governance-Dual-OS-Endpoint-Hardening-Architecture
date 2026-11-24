@@ -1,0 +1,15 @@
+# T-03 port sweep — SRV-LIN01 leg, real VM run (2026-11-24)
+# From LAP-IT01 role (Windows host 192.168.56.1): Test-NetConnection 192.168.56.20
+
+SRV-LIN01 port 22 : True
+SRV-LIN01 port 80 : False
+SRV-LIN01 port 443 : False
+SRV-LIN01 port 3389 : False
+
+$ [on SRV-LIN01] sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22/tcp                     ALLOW IN    192.168.56.0/24            # SSH from mgmt subnet
+

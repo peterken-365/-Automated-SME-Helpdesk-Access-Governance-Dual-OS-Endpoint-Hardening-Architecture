@@ -1,0 +1,48 @@
+# T-02 SSH key-only enforcement — real VM run (SRV-LIN01, 2026-11-24 23:49 EAST)
+# Source: LAP-IT01 role = Windows host 192.168.56.1 (Git Bash OpenSSH)
+
+$ ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no itsupport@192.168.56.20
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+itsupport@192.168.56.20: Permission denied (publickey).
+exit=255
+
+$ ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no root@192.168.56.20
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+root@192.168.56.20: Permission denied (publickey).
+exit=255
+
+$ [on SRV-LIN01] sshd -T | grep -E "permitrootlogin|passwordauthentication"
+permitrootlogin no
+passwordauthentication no
+
+$ [on SRV-LIN01] sudo fail2ban-client status sshd
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed:	0
+|  |- Total failed:	0
+|  `- Journal matches:	_SYSTEMD_UNIT=sshd.service + _COMM=sshd
+`- Actions
+   |- Currently banned:	0
+   |- Total banned:	0
+   `- Banned IP list:	
+
+$ [on SRV-LIN01] sudo tail -14 /var/log/auth.log
+2026-11-24T20:49:55.694142+00:00 SRV-LIN01 systemd-logind[815]: New session 16 of user itsupport.
+2026-11-24T20:49:56.318295+00:00 SRV-LIN01 sudo: itsupport : PWD=/home/itsupport ; USER=root ; COMMAND=/usr/bin/fail2ban-client status sshd
+2026-11-24T20:49:56.319069+00:00 SRV-LIN01 sudo: pam_unix(sudo:session): session opened for user root(uid=0) by itsupport(uid=1000)
+2026-11-24T20:49:56.520428+00:00 SRV-LIN01 sudo: pam_unix(sudo:session): session closed for user root
+2026-11-24T20:49:56.531352+00:00 SRV-LIN01 sshd[2434]: Received disconnect from 192.168.56.1 port 58996:11: disconnected by user
+2026-11-24T20:49:56.532022+00:00 SRV-LIN01 sshd[2434]: Disconnected from user itsupport 192.168.56.1 port 58996
+2026-11-24T20:49:56.533295+00:00 SRV-LIN01 sshd[2387]: pam_unix(sshd:session): session closed for user itsupport
+2026-11-24T20:49:56.553486+00:00 SRV-LIN01 systemd-logind[815]: Session 16 logged out. Waiting for processes to exit.
+2026-11-24T20:49:56.565698+00:00 SRV-LIN01 systemd-logind[815]: Removed session 16.
+2026-11-24T20:49:56.950389+00:00 SRV-LIN01 sshd[2439]: Accepted publickey for itsupport from 192.168.56.1 port 59004 ssh2: ED25519 SHA256:RUcqO31uqxk36+J+My5xnml0+xY+5vNwHDpsVoMwTyY
+2026-11-24T20:49:56.955103+00:00 SRV-LIN01 sshd[2439]: pam_unix(sshd:session): session opened for user itsupport(uid=1000) by itsupport(uid=0)
+2026-11-24T20:49:56.965367+00:00 SRV-LIN01 systemd-logind[815]: New session 17 of user itsupport.
+2026-11-24T20:49:57.425610+00:00 SRV-LIN01 sudo: itsupport : PWD=/home/itsupport ; USER=root ; COMMAND=/usr/bin/tail -14 /var/log/auth.log
+2026-11-24T20:49:57.426988+00:00 SRV-LIN01 sudo: pam_unix(sudo:session): session opened for user root(uid=0) by itsupport(uid=1000)
+
+# Addendum: SRV-LIN01 auth.log rejection records for T-02 attempts (2026-11-24)
+2026-11-24T20:49:52.099696+00:00 SRV-LIN01 sshd[2305]: Connection closed by authenticating user itsupport 192.168.56.1 port 49490 [preauth]
+2026-11-24T20:49:52.424253+00:00 SRV-LIN01 sshd[2307]: Connection closed by authenticating user root 192.168.56.1 port 58974 [preauth]
+2026-11-24T20:53:03.657311+00:00 SRV-LIN01 sudo: itsupport : PWD=/home/itsupport ; USER=root ; COMMAND=/usr/bin/grep -E 'Failed|Invalid user|Connection closed by authenticating|Permission denied' /var/log/auth.log

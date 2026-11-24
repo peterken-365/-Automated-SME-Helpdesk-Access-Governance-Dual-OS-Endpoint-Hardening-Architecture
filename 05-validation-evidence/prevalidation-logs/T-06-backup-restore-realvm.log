@@ -1,0 +1,32 @@
+# T-06 Backup restore — real VM run (SRV-LIN01, 2026-11-24)
+# Snapshot used: daily/2026-11-24 (taken during post-install setup at 20:48 UTC)
+
+$ ls -l /srv/company-data/reports/ && md5sum quarterly-summary.odt
+total 4
+-rw-r--r-- 1 root root 43 Nov 24 20:48 quarterly-summary.odt
+246f3d847f425073f32498500da02567  /srv/company-data/reports/quarterly-summary.odt
+
+$ sudo bash /opt/scripts/backup-restore.sh list
+--- daily ---
+2026-11-24
+--- weekly ---
+(none)
+
+$ sudo rm /srv/company-data/reports/quarterly-summary.odt  (staff-accident simulation)
+$ md5sum quarterly-summary.odt
+md5sum: /srv/company-data/reports/quarterly-summary.odt: No such file or directory
+exit=1 (expected failure: file gone)
+
+$ sudo bash /opt/scripts/backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt
+Restored: /srv/backups/daily/2026-11-24/reports/quarterly-summary.odt -> /srv/company-data/reports/quarterly-summary.odt
+Checksum of restored file:
+246f3d847f425073f32498500da02567  /srv/company-data/reports/quarterly-summary.odt
+
+$ md5sum quarterly-summary.odt  (integrity check after restore)
+246f3d847f425073f32498500da02567  /srv/company-data/reports/quarterly-summary.odt
+
+$ sudo bash /opt/scripts/backup-restore.sh list  (snapshot inventory)
+--- daily ---
+2026-11-24
+--- weekly ---
+(none)

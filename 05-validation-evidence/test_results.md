@@ -1,6 +1,6 @@
 # Validation & Testing Evidence — Test Results
 
-> **Version:** v1.1 · **Date:** 2026-11-24 · **Owner:** IT Support
+> **Version:** v1.2 · **Date:** 2026-11-24 · **Owner:** IT Support
 > **Integrity rule:** every result below is captured from a real execution. No result is written before its test has run. Screenshot filenames are fixed; images are added to `images/` as each physical test executes.
 
 ## How this evidence is produced (three tiers)
@@ -9,7 +9,7 @@
 |---|---|---|
 | **1 — Script pre-validation** | The repository's own scripts executed directly in a sandbox shell: real exit codes, real checksums, real inode dedup. All shell scripts also pass `bash -n` syntax gate. | ✅ Done — see `prevalidation-logs/T-06-backup-restore.log` |
 | **2 — Simulator E2E** | All six guided tests executed end-to-end in the deployed [browser simulator](../lab/) on **2026-11-24** (Chromium, desktop viewport, fresh session): every step driven through the real UI — including the T-01 UAC dialog — full transcripts in [`prevalidation-logs/`](prevalidation-logs/), **zero console errors** across all runs. Re-checked at mobile viewport (390×844): no layout overflow. | ✅ Done — T-01…T-06 |
-| **3 — Physical lab capture** | The same six tests re-run on the real VirtualBox endpoints per the [lab build guide](../06-lab-build/lab-build-guide.md), screenshots added to `images/` with the fixed filenames below. | ⏳ Pending lab session |
+| **3 — Physical lab capture** | The same six tests re-run on the real VirtualBox endpoints per the [lab build guide](../06-lab-build/lab-build-guide.md), screenshots added to `images/` with the fixed filenames below. | 🔶 In progress — SRV-LIN01 legs executed on the real VM 2026-11-24 (transcripts in `prevalidation-logs/*-realvm.log`); WIN-FIN01 legs + PNG capture pending |
 
 Tier 2 proves the architecture's **decision paths** behave as designed; Tier 1 proves the **scripts actually run**; Tier 3 turns both into visual, on-the-metal proof.
 
@@ -18,11 +18,11 @@ Tier 2 proves the architecture's **decision paths** behave as designed; Tier 1 p
 | Test ID | Scenario tested | Node(s) | Simulator E2E (Tier 2) | Physical screenshots (Tier 3) |
 |---|---|---|---|---|
 | T-01 | Standard-user privilege boundary | WIN-FIN01 | ✅ Verified 2026-11-24 | ⏳ Pending |
-| T-02 | Linux SSH key-only enforcement | SRV-LIN01 | ✅ Verified 2026-11-24 | ⏳ Pending |
-| T-03 | Port scan against hardened endpoints | LAP-IT01 → WIN-FIN01 + SRV-LIN01 | ✅ Verified 2026-11-24 | ⏳ Pending |
+| T-02 | Linux SSH key-only enforcement | SRV-LIN01 | ✅ Verified 2026-11-24 | ✅ Executed on real VM 2026-11-24 (transcript) · PNGs pending |
+| T-03 | Port scan against hardened endpoints | LAP-IT01 → WIN-FIN01 + SRV-LIN01 | ✅ Verified 2026-11-24 | 🔶 SRV-LIN01 leg executed on real VM 2026-11-24 (transcript) · WIN-FIN01 leg + PNGs pending |
 | T-04 | RBAC folder access control | WIN-FIN01 | ✅ Verified 2026-11-24 | ⏳ Pending |
 | T-05 | DNS failure isolation (Runbook A) | WIN-FIN01 | ✅ Verified 2026-11-24 | ⏳ Pending |
-| T-06 | Backup restore | SRV-LIN01 | ✅ Verified 2026-11-24 · **plus real script run (Tier 1)** | ⏳ Pending |
+| T-06 | Backup restore | SRV-LIN01 | ✅ Verified 2026-11-24 · **plus real script run (Tier 1)** | ✅ Executed on real VM 2026-11-24 (transcript) · PNGs pending |
 
 ---
 
@@ -65,6 +65,9 @@ Tier 2 proves the architecture's **decision paths** behave as designed; Tier 1 p
 **Actual result — ✅ verified (simulator E2E, 2026-11-24):**
 Password-forced SSH returned `Permission denied (publickey)` — the server offered exactly one method, `publickey`; no password prompt ever appeared. Root SSH was rejected identically. `sshd -T | grep …` confirmed `permitrootlogin no` + `passwordauthentication no` (linux-baseline rows 1-2), and `auth.log` recorded every attempt — user, source IP, port, method — for the audit trail. Full transcript: [`prevalidation-logs/T-02-ssh-keyonly.log`](prevalidation-logs/T-02-ssh-keyonly.log).
 
+**Actual result — ✅ verified (real VM, Tier 3, 2026-11-24):**
+Password-forced `ssh` to `itsupport@192.168.56.20` returned `Permission denied (publickey)` (exit 255); the identical forced attempt to `root@192.168.56.20` was rejected the same way — the server offered exactly one method, `publickey`. Server-side `sshd -T` shows `permitrootlogin no` / `passwordauthentication no` (linux-baseline rows 1-2), the fail2ban sshd jail is active, and `auth.log` recorded both rejections — `Connection closed by authenticating user itsupport/root 192.168.56.1 … [preauth]` — with source IP, port and method for the audit trail. Full transcript: [`prevalidation-logs/T-02-ssh-keyonly-realvm.log`](prevalidation-logs/T-02-ssh-keyonly-realvm.log).
+
 **Evidence:**
 ![T-02 SSH password authentication rejected](images/T-02-ssh-password-rejected.png)
 ![T-02 auth log lockout record](images/T-02-auth-log-lockout.png)
@@ -99,6 +102,9 @@ Password-forced SSH returned `Permission denied (publickey)` — the server offe
 
 **Actual result — ✅ verified (simulator E2E, 2026-11-24):**
 WIN-FIN01 sweep: `22/135/445/5985 : False`, `3389 : True` — only the IT-support RDP rule answers, scoped to 192.168.56.0/24. SRV-LIN01 sweep: `22 : True`, `80/443/3389 : False` — one service, one subnet, UFW default-deny holds. 10 of 12 probes dropped, exactly as expected. Full transcript: [`prevalidation-logs/T-03-port-scan.log`](prevalidation-logs/T-03-port-scan.log).
+
+**Actual result — SRV-LIN01 leg ✅ verified (real VM, Tier 3, 2026-11-24):**
+`Test-NetConnection` sweep from the host (LAP-IT01 role, 192.168.56.1): `22 : True`, `80/443/3389 : False` — one service, one subnet, UFW default-deny holds on the real endpoint. Transcript incl. `ufw status numbered`: [`prevalidation-logs/T-03-port-scan-realvm-linux.log`](prevalidation-logs/T-03-port-scan-realvm-linux.log). WIN-FIN01 leg pending VM build.
 
 **Evidence:**
 ![T-03 Windows port status](images/T-03-win-port-status.png)
@@ -170,11 +176,13 @@ After the DNS break, the ladder ran clean: gateway ping `Reply from 192.168.56.1
 
 **Expected result:** deleted file returns bit-identical (checksum match) from the scheduled snapshot.
 
-**Actual result — ✅ verified twice (Tier 1 real script run + simulator E2E, 2026-11-24):**
+**Actual result — ✅ verified three times (Tier 1 script run + simulator E2E + real VM, 2026-11-24):**
 
 *Tier 1 — the real `backup-restore.sh` script executed in a sandbox shell* (strongest evidence): baseline md5 `246f3d847f425073f32498500da02567` recorded → daily snapshot created → a second consecutive daily run proven hardlink-deduplicated (day-1 and day-2 snapshots share inode `287153`) → `rm` confirmed the file gone (`md5sum: No such file or directory`) → `restore` returned the file with checksum `246f3d847f425073f32498500da02567` — **bit-identical to baseline**. Full log: [`prevalidation-logs/T-06-backup-restore.log`](prevalidation-logs/T-06-backup-restore.log).
 
 *Tier 2 — simulator E2E*: same runbook executed through the guided UI (baseline `e2f7a1c9…` → daily snapshot → delete → restore, checksum match, completion badge). Full transcript: [`prevalidation-logs/T-06-backup-restore-sim.log`](prevalidation-logs/T-06-backup-restore-sim.log).
+
+*Tier 3 — real VM run*: baseline md5 `246f3d847f425073f32498500da02567` recorded → `rm` confirmed gone (`No such file or directory`) → `backup-restore.sh restore daily/2026-11-24 reports/quarterly-summary.odt` returned the file with checksum `246f3d847f425073f32498500da02567` — **bit-identical to baseline**; `backup-restore.sh list` shows `daily/2026-11-24`. Full transcript: [`prevalidation-logs/T-06-backup-restore-realvm.log`](prevalidation-logs/T-06-backup-restore-realvm.log).
 
 **Evidence:**
 ![T-06 file deleted](images/T-06-file-deleted.png)
