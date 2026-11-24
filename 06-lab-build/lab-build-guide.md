@@ -216,4 +216,4 @@ Execute exactly as scripted in [test_results.md](../05-validation-evidence/test_
 
 ## 12. Update the Evidence
 
-For each executed test, replace `⏳ Pending — capture in lab session` in [test_results.md](../05-validation-evidence/test_results.md) with the actual result, confirm the image embeds resolve, and flip the corresponding row in the [README verification table](../README.md#5-verification--testing-matrix) to `Passed`. A backup or control that was never tested is treated as not existing.
+For each executed test, tick the physical capture checklist and set the **Physical lab (Tier 3)** cell to ✅ with the capture date in [test_results.md](../05-validation-evidence/test_results.md), drop the screenshots into `images/` with the exact filenames, confirm the image embeds resolve, and flip the corresponding **Physical lab** cell in the [README verification table](../README.md#5-verification--testing-matrix) to ✅. A backup or control that was never tested is treated as not existing.
