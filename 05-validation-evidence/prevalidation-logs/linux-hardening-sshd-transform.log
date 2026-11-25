@@ -1,0 +1,28 @@
+=== sshd_config transform unit test (source of truth: /home/z/sme-helpdesk-repo/06-lab-build/scripts/tests/../linux/linux-hardening.sh) ===
+
+--- lines under test (extracted live from the script) ---
+cp "$SSHD" "${SSHD}.bak.$(date +%F)"
+sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' "$SSHD"
+sed -i 's/^#\?KbdInteractiveAuthentication.*/KbdInteractiveAuthentication no/' "$SSHD"
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' "$SSHD"
+grep -q '^PubkeyAuthentication yes' "$SSHD" || echo 'PubkeyAuthentication yes' >> "$SSHD"
+
+--- transformed fixture: relevant directives ---
+8:PasswordAuthentication no
+9:PermitRootLogin no
+10:KbdInteractiveAuthentication no
+16:PubkeyAuthentication yes
+
+PASS: PasswordAuthentication hard-disabled exactly once (found 1)
+PASS: KbdInteractiveAuthentication hard-disabled exactly once (found 1)
+PASS: PermitRootLogin hard-disabled exactly once (found 1)
+PASS: PubkeyAuthentication enabled exactly once (appended) (found 1)
+PASS: commented defaults fully rewritten (no stale directives)
+PASS: no directive retains an insecure value
+
+--- idempotency: after a second transform pass ---
+PASS: re-run: still exactly one PasswordAuthentication line (found 1)
+PASS: re-run: still exactly one PermitRootLogin line (found 1)
+PASS: re-run: still exactly one PubkeyAuthentication line (found 1)
+
+RESULT: ALL CHECKS PASSED — sshd_config transform logic matches 03-hardening-baselines/linux-baseline.md rows 1-2

@@ -16,7 +16,7 @@ case "$MODE" in
   daily)
     SNAP="$DST/daily/$(date +%F)"
     mkdir -p "$DST/daily"
-    LATEST=$(ls -1d "$DST"/daily/* 2>/dev/null | sort | tail -n 1 || true)
+    LATEST=$(find "$DST/daily" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 || true)
     if [ -n "$LATEST" ]; then
       rsync -a --delete --link-dest="$LATEST" "$SRC/" "$SNAP/"
     else

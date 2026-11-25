@@ -44,6 +44,19 @@
 2. Installer: hostname `SRV-LIN01`, user `itsupport` (strong password — it is the sudo account), **check "Install OpenSSH server"**. Skip snaps.
 3. Reboot, log in via VirtualBox console once to confirm.
 
+### 3a. Automated alternative — one-command Linux node (Vagrant)
+
+Skip manual creation of SRV-LIN01 entirely. With VirtualBox + Vagrant installed:
+
+```bash
+cd 06-lab-build
+vagrant up
+```
+
+This builds the VM (bento/ubuntu-24.04, 1536 MB / 1 vCPU, host-only **192.168.56.20**) and applies `scripts/linux/linux-hardening.sh` as the provisioner — the same script, unmodified, that §8 runs by hand. It also adds one lab-only rule keeping Vagrant's NAT control plane reachable after UFW default-deny (commented in the [Vagrantfile](Vagrantfile); not part of the production-pattern node). First run downloads the box image (~500 MB).
+
+Continue with §5 name resolution, §6 identity setup, and §9 backups on this node as documented. WIN-FIN01 remains click-by-click (§2) — automating a Windows VM requires licensed media, which this project deliberately avoids.
+
 ---
 
 ## 4. Dual-Interface Networking

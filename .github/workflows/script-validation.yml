@@ -1,0 +1,53 @@
+name: script-validation
+
+# The repository's evidence rule — "no result is written before its test has
+# run" — applies to the tooling itself: every push and PR re-runs the full
+# script gate, so the hardening/backup scripts can never silently regress.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  bash:
+    name: bash gate (syntax + ShellCheck + sshd transform unit test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash -n syntax gate
+        run: |
+          bash -n 06-lab-build/scripts/linux/linux-hardening.sh
+          bash -n 06-lab-build/scripts/linux/backup-restore.sh
+          bash -n 06-lab-build/scripts/tests/sshd-transform-test.sh
+
+      - name: ShellCheck (style level — strictest)
+        run: shellcheck -S style 06-lab-build/scripts/linux/linux-hardening.sh 06-lab-build/scripts/linux/backup-restore.sh
+
+      - name: sshd_config transform unit test
+        # Validates linux-hardening.sh's exact sshd edit block against a stock
+        # Ubuntu 24.04 fixture — hard-disable values, Pubkey append, idempotency.
+        run: bash 06-lab-build/scripts/tests/sshd-transform-test.sh
+
+  powershell:
+    name: PowerShell AST parse (windows-hardening.ps1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse windows-hardening.ps1 with the PowerShell language parser
+        shell: pwsh
+        run: |
+          $errs = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "06-lab-build/scripts/windows/windows-hardening.ps1").Path,
+            [ref]$null, [ref]$errs)
+          if ($errs.Count -gt 0) {
+            $errs | ForEach-Object {
+              Write-Error ("line {0} col {1}: {2}" -f $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber, $_.Message)
+            }
+            exit 1
+          }
+          Write-Host "PARSE OK: 0 syntax errors"

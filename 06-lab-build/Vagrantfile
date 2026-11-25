@@ -1,0 +1,50 @@
+# Vagrantfile — one-command automated build of SRV-LIN01 (Ubuntu Server 24.04 LTS)
+#
+#   cd 06-lab-build
+#   vagrant up
+#
+# Brings up the Linux node of the lab with the repository's own hardening
+# baseline applied as the provisioner (scripts/linux/linux-hardening.sh).
+# After provisioning you have, exactly as the baseline requires:
+#   - SSH key-only auth, no root login (sshd_config hard-disabled)
+#   - UFW default-deny, SSH scoped to the 192.168.56.0/24 mgmt subnet
+#   - fail2ban sshd jail + unattended-upgrades enabled
+#   - node reachable at 192.168.56.20 from the host (run T-02 / T-03 to prove it)
+#   - vagrant ssh for administration (via the NAT rule below)
+#
+# Scope note: this automates the LINUX node only. WIN-FIN01 (Windows 10) is
+# built click-by-click per lab-build-guide.md sections 2-8 — automating a
+# Windows endpoint requires licensed media, which this project deliberately
+# avoids (see vm-inventory.md: unactivated evaluation install).
+#
+# Integrity note: linux-hardening.sh is NOT modified for automation. After it
+# enables UFW default-deny, a final inline provisioner re-opens SSH for
+# Vagrant's internal NAT control plane (10.0.2.0/24) only. That rule is lab
+# scaffolding — it must not be replicated on the production-pattern node in
+# the build guide.
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-24.04"
+  config.vm.hostname = "SRV-LIN01"
+
+  # Host-only management subnet — matches 01-architecture/network-topology.md
+  config.vm.network "private_network", ip: "192.168.56.20"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "SRV-LIN01"
+    vb.memory = 1536 # matches 01-architecture/vm-inventory.md
+    vb.cpus   = 1
+    vb.gui    = false
+  end
+
+  # 1) Apply the repository's hardening baseline — the exact script the guide runs.
+  config.vm.provision "shell", path: "scripts/linux/linux-hardening.sh"
+
+  # 2) Lab-automation scaffolding: keep Vagrant's NAT control plane reachable
+  #    after UFW default-deny. Scoped to Vagrant's internal NAT subnet only.
+  config.vm.provision "shell", inline: <<-'SHELL'
+    ufw allow from 10.0.2.0/24 to any port 22 proto tcp comment 'Vagrant NAT control plane (lab automation only)'
+    ufw reload
+    echo "SRV-LIN01 ready at 192.168.56.20 — validate with T-02 (ssh key-only) and T-03 (port scan) from the host."
+  SHELL
+end

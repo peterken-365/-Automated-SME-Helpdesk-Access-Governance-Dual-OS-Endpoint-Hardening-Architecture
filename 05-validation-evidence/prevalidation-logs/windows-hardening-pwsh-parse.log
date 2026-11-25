@@ -1,0 +1,7 @@
+# PowerShell AST parse validation — 2026-11-25 03:49:47 UTC
+# Engine: PowerShell 7.4.6 (Linux x64) — same language parser as Windows PowerShell 5.1/7.x
+$ script: 06-lab-build/scripts/windows/windows-hardening.ps1
+$ method: [System.Management.Automation.Language.Parser]::ParseFile — full AST build, all syntax errors reported
+
+PARSE OK: 0 syntax errors — 247 tokens, full AST built
+exit=0
