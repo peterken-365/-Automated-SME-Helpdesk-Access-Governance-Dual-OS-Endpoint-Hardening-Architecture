@@ -14,4 +14,4 @@ Reproducible automation for the lab baseline. Every script is idempotent-safe (r
 - Run the hardening scripts once per node during the build (see [lab-build-guide.md](../lab-build-guide.md)); safe to re-run for drift correction.
 - Cron entries for the backup schedule are set in [lab-build-guide.md §9](../lab-build-guide.md#9-backups-on-srv-lin01).
 - The scripts print a verification summary at the end — compare it against the baseline compliance tables before marking rows green.
-- CI: [`.github/workflows/script-validation.yml`](../../.github/workflows/script-validation.yml) re-runs the full gate on every push — `bash -n`, ShellCheck (style level), the sshd transform unit test, and a PowerShell AST parse of `windows-hardening.ps1`.
+- CI: [`.github/workflows/script-validation.yml`](https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/blob/main/.github/workflows/script-validation.yml) re-runs the full gate on every push — `bash -n`, ShellCheck (style level), the sshd transform unit test, and a PowerShell AST parse of `windows-hardening.ps1`.
