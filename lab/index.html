@@ -498,10 +498,11 @@ const CMDS = {
     nslookup(a){ return nslookupCmd(a); },
     icacls(a){ const p=(a[0]||"").replace(/"/g,"");
       if(!/^C:\\Corp\\(Finance-Shared|Company-Templates|IT-Admin-Logs)$/i.test(p)) return [L("Usage: icacls \"C:\\Corp\\<share>\"","dim")];
-      const acl = { "C:\\Corp\\Finance-Shared":[["GRP-Finance:(OI)(CI)M","ok"],["GRP-ITSUPPORT:(OI)(CI)RX",""],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]],
+      const ACLS = { "C:\\Corp\\Finance-Shared":[["GRP-Finance:(OI)(CI)M","ok"],["GRP-ITSUPPORT:(OI)(CI)RX",""],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]],
                     "C:\\Corp\\Company-Templates":[["GRP-Finance:(OI)(CI)RX",""],["GRP-Operations:(OI)(CI)RX",""],["GRP-ITSUPPORT:(OI)(CI)M","ok"],["GRP-Interns:(OI)(CI)RX",""],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]],
-                    "C:\\Corp\\IT-Admin-Logs":[["GRP-ITSUPPORT:(OI)(CI)F","ok"],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]] }[p];
-      return [L(p+" "), ...acl.map(([t,c])=>L("                      "+t,c)), L(""), L("Successfully processed 1 files. (Note: GRP-Finance holds NO grant on IT-Admin-Logs.)","dim")]; },
+                    "C:\\Corp\\IT-Admin-Logs":[["GRP-ITSUPPORT:(OI)(CI)F","ok"],["SYSTEM:(OI)(CI)F",""],["Administrators:(OI)(CI)F",""]] };
+      const acl = ACLS[Object.keys(ACLS).find(k=>k.toLowerCase()===p.toLowerCase())]||[];
+      return [L(p+" "), ...acl.map(([t,c])=>L("                      "+t,c)), L(""), ...(/it-admin-logs$/i.test(p)?[L("Successfully processed 1 files. (Note: GRP-Finance holds NO grant on IT-Admin-Logs.)","dim")]:[L("Successfully processed 1 files","dim")])]; },
     dir(a){ if((a.join(" ").toLowerCase()).includes("it-admin-logs")) return [L("Access is denied.","err"), L(""), L("awanjiru ∉ GRP-ITSUPPORT → no ACL grant on C:\\Corp\\IT-Admin-Logs (RBAC matrix). See T-04.","dim")]; return [L(" Directory of C:\\Users\\awanjiru"), L(""), L("Documents/          Desktop/            Downloads/")]; },
     "set-dnsclientserveraddress"(a){ return dnsSet(a); },
     clear(){ $("termOut").innerHTML=""; return []; },
@@ -557,7 +558,7 @@ function pingCmd(a, linux=false){
   const t = (a[0]||"").replace(/^ping\s+/i,"");
   if(!t) return [L("usage: ping <host|ip>","dim")];
   const ip = HOSTS[t] || (/^\d+\.\d+\.\d+\.\d+$/.test(t)? t : (t.includes(".")? (S.dnsBroken? null : "142.250.183.14") : null));
-  if(!ip) return [L((linux?"ping: ":"Ping request could not find host "), t+". Please check the name and try again.","err"),
+  if(!ip) return [L((linux?"ping: ":"Ping request could not find host ")+t+". Please check the name and try again.","err"),
                   L("Name resolution failed while IP-level connectivity is fine → DNS-layer failure (Runbook A step 5).","dim")];
   return [L("Pinging "+t+" ["+ip+"] with 32 bytes of data:"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L("Reply from "+ip+": bytes=32 time<1ms TTL=64","ok"), L(""), L("Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)","dim")];
 }

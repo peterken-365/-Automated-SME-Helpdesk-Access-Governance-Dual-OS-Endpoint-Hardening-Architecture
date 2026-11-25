@@ -1,14 +1,15 @@
 # Automated SME Helpdesk, Access Governance & Dual-OS Endpoint Hardening Architecture
 
 > **Project 1** — aligned to the Google IT Support Professional Certificate
-> **Role:** Junior Systems & IT Support Architect · **Version:** v1.1 · **Date:** 2026-11-24
+> **Role:** Junior Systems & IT Support Architect · **Version:** v1.2 · **Date:** 2026-11-24
 > **Simulated client:** Savannah Logistics Ltd., Nairobi
 
 **▶ [OPEN THE LIVE INTERACTIVE LAB](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/)** — runs in your browser, nothing to install.
+[![script-validation](https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/actions/workflows/script-validation.yml/badge.svg)](https://github.com/peterken-365/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/actions/workflows/script-validation.yml)
 
 ## ▶ Try the Interactive Lab
 
-No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is **live here**: [peterken-365.github.io/…/lab](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence remains the physical lab build in [`05-validation-evidence/`](05-validation-evidence/). All six guided tests have been executed end-to-end in this simulator — full transcripts in [`05-validation-evidence/prevalidation-logs/`](05-validation-evidence/prevalidation-logs/).
+No installation needed: a browser-based simulation of this lab — six guided walkthroughs of the validation tests plus a free-play terminal with ~20 working commands — is **live here**: [peterken-365.github.io/…/lab](https://peterken-365.github.io/-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/lab/). It is a **demonstration of the architecture**, clearly labeled as a simulation; the authoritative evidence lives in [05-validation-evidence/test_results.md](05-validation-evidence/test_results.md). All six guided tests have been executed end-to-end in this simulator — full transcripts, linked per test, in that same file.
 
 **New — Incident Challenges:** the simulator now *breaks the lab for real* (DNS outage, deleted file, SSH lockout), and you diagnose it in the free-play terminal and type the actual fix command. Scored PASS/hand-over, hints staged, every challenge linked to the runbook it exercises.
 
@@ -46,7 +47,7 @@ flowchart TB
 | 1. Network & Virtual Lab Design | Dual-interface networking (NAT for updates, host-only 192.168.56.0/24 for management), static addressing, name resolution | [01-architecture/network-topology.md](01-architecture/network-topology.md), [vm-inventory.md](01-architecture/vm-inventory.md) |
 | 2. Identity & Access Lifecycle | Joiner–Mover–Leaver policy, standard/admin account separation, departmental RBAC, 15-minute onboarding, 5-point offboarding | [02-identity-and-access/jml-policy.md](02-identity-and-access/jml-policy.md), [rbac-matrix.md](02-identity-and-access/rbac-matrix.md) |
 | 3. Dual-OS Hardening Baseline | Golden-standard checklists every machine must pass before handover (Windows + Linux) | [03-hardening-baselines/windows-baseline.md](03-hardening-baselines/windows-baseline.md), [linux-baseline.md](03-hardening-baselines/linux-baseline.md) |
-| 4. IT Service Management & Diagnostics | Five Tier-1/Tier-2 runbooks: Symptom → OSI-layer isolation → Verification → Root-cause prevention | [04-troubleshooting-runbooks/](04-troubleshooting-runbooks/) |
+| 4. IT Service Management & Diagnostics | Five Tier-1/Tier-2 runbooks: Symptom → OSI-layer isolation → Verification → Root-cause prevention | [Runbook A](04-troubleshooting-runbooks/runbook-a-no-internet.md) · [B](04-troubleshooting-runbooks/runbook-b-access-denied.md) · [C](04-troubleshooting-runbooks/runbook-c-slow-workstation.md) · [D](04-troubleshooting-runbooks/runbook-d-malware.md) · [E](04-troubleshooting-runbooks/runbook-e-ssh-refused.md) |
 | 5. Backup, Change Management & Auditability | 3-2-1 backup with tested restores, pre/post-change snapshots, retained security events | [05-validation-evidence/test_results.md](05-validation-evidence/test_results.md), [06-lab-build/lab-build-guide.md](06-lab-build/lab-build-guide.md) |
 
 ## 4. Technologies
@@ -55,11 +56,11 @@ VirtualBox (hypervisor) · Windows 10 (endpoint) · Ubuntu Server 24.04 LTS (ser
 
 ## 5. Verification & Testing Matrix
 
-Every claim in this repository is backed by a test, and every result is produced in three tiers — no result is written before its test has run. Evidence lives in [05-validation-evidence/](05-validation-evidence/).
+Every claim in this repository is backed by a test, and every result is produced in three tiers — no result is written before its test has run. Evidence lives in [05-validation-evidence/test_results.md](05-validation-evidence/test_results.md).
 
-1. **Tier 1 — Script pre-validation:** the repository's own scripts executed in a sandbox shell (real exit codes, checksums, inode dedup); all shell scripts also pass a `bash -n` syntax gate. Logs: [prevalidation-logs/](05-validation-evidence/prevalidation-logs/).
+1. **Tier 1 — Script pre-validation:** the repository's own scripts executed in a sandbox shell (real exit codes, checksums, inode dedup), plus machine validation of every script: `bash -n` gate, ShellCheck v0.10.0 (zero findings at style level), an sshd_config transform unit test, and a PowerShell 7.4.6 AST parse of the Windows script — all re-run by [GitHub Actions](.github/workflows/script-validation.yml) on every push. Raw logs: `05-validation-evidence/prevalidation-logs/`.
 2. **Tier 2 — Simulator E2E:** all six tests driven end-to-end through the [interactive lab](lab/) UI on **2026-11-24** — desktop and mobile viewports, zero console errors, including the T-01 UAC dialog. Proves the architecture's decision paths behave exactly as designed.
-3. **Tier 3 — Physical lab capture:** the same six tests re-run on the real VirtualBox endpoints with screenshots, per the [lab build guide](06-lab-build/lab-build-guide.md). **In progress:** SRV-LIN01 was built, hardened and snapshotted on 2026-11-24, and the Linux-side legs (T-02, T-03 SRV-LIN01, T-06) already executed on the real endpoint — transcripts in [prevalidation-logs/](05-validation-evidence/prevalidation-logs/). Remaining: WIN-FIN01 build + its test legs + PNG screenshot capture.
+3. **Tier 3 — Physical lab capture:** the same six tests re-run on the real VirtualBox endpoints with screenshots, per the [lab build guide](06-lab-build/lab-build-guide.md). **In progress:** SRV-LIN01 was built, hardened and snapshotted on 2026-11-24, and the Linux-side legs (T-02, T-03 SRV-LIN01, T-06) already executed on the real endpoint — transcripts: [T-02](05-validation-evidence/prevalidation-logs/T-02-ssh-keyonly-realvm.log) · [T-03 Linux leg](05-validation-evidence/prevalidation-logs/T-03-port-scan-realvm-linux.log) · [T-06](05-validation-evidence/prevalidation-logs/T-06-backup-restore-realvm.log). Remaining: WIN-FIN01 build + its test legs + PNG screenshot capture.
 
 | Test ID | Scenario tested | Expected architectural result | Simulator E2E (Tier 2) | Physical lab (Tier 3) |
 |---|---|---|---|---|
@@ -73,7 +74,7 @@ Every claim in this repository is backed by a test, and every result is produced
 ## 6. Repository Map
 
 ```
-01-it-support-endpoint-hardening-lab/
+-Automated-SME-Helpdesk-Access-Governance-Dual-OS-Endpoint-Hardening-Architecture/
 ├── README.md                          ← you are here
 ├── 01-architecture/                   network topology, IP plan, VM inventory
 ├── 02-identity-and-access/            JML policy, RBAC matrix, on/offboarding checklists
@@ -81,10 +82,12 @@ Every claim in this repository is backed by a test, and every result is produced
 ├── 04-troubleshooting-runbooks/       Runbooks A–E (Tier-1/Tier-2 SOPs)
 ├── 05-validation-evidence/            test_results.md · prevalidation-logs/ · screenshots (Tier 3)
 ├── 06-lab-build/                      click-by-click build guide + hardening scripts
+│   ├── Vagrantfile                    ▶ one-command automated build of SRV-LIN01
 │   └── scripts/                       linux-hardening.sh · windows-hardening.ps1 · backup-restore.sh
+│       └── tests/                     sshd_config transform unit test (CI-run)
 └── lab/                               ▶ interactive browser simulator (zero-install demo)
 ```
 
 ## 7. Rebuilding This Lab
 
-The entire environment can be rebuilt from zero on any 2-core / 8 GB machine using only free software. Follow [06-lab-build/lab-build-guide.md](06-lab-build/lab-build-guide.md) step by step, then run the three scripts in `06-lab-build/scripts/`. Validation follows the three-tier model in [05-validation-evidence/](05-validation-evidence/): scripts are pre-validated by real execution, the six tests' decision paths are proven end-to-end in the browser simulator, and every test ships with a physical capture checklist — so when you build the lab, each checklist item turns a verified result into on-the-metal screenshot evidence.
+The entire environment can be rebuilt from zero on any 2-core / 8 GB machine using only free software. Follow [06-lab-build/lab-build-guide.md](06-lab-build/lab-build-guide.md) step by step, then run the three scripts in `06-lab-build/scripts/`. The Linux node can also be brought up in one command with the included Vagrantfile (`vagrant up` inside `06-lab-build/`) — it applies the hardening script as its provisioner, unmodified. GitHub Actions re-validates all three scripts on every push (badge above). Validation follows the three-tier model in [05-validation-evidence/test_results.md](05-validation-evidence/test_results.md): scripts are pre-validated by real execution, the six tests' decision paths are proven end-to-end in the browser simulator, and every test ships with a physical capture checklist — so when you build the lab, each checklist item turns a verified result into on-the-metal screenshot evidence.
